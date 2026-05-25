@@ -153,13 +153,57 @@ xcodebuild -project Notepad.xcodeproj -scheme Notepad test 2>&1 | tail -200
    git push origin main
    ```
 5. **If `git push` fails** (e.g., non-fast-forward rejection): do NOT force-push. Comment on the issue with the push error, write `failed:<N>` to `.ralph-status`, and stop.
-6. Close the issue:
+6. **Post a detailed completion comment, then close.** A bare "closed" comment is not acceptable — the user reads these comments to learn what shipped without opening the diff. Build the comment body in a temp file first (so multi-line markdown survives shell quoting), then post + close:
+
    ```
    SHA=$(git rev-parse --short HEAD)
-   gh issue close <N> --repo samantha-network4all-bot/slate \
-     --comment "Implemented and merged in $SHA via automated Ralph loop."
+   FILES=$(git diff --name-only HEAD~1..HEAD | sed 's/^/- `/' | sed 's/$/`/')
+   BUILD_TAIL=$(xcodebuild -project Notepad.xcodeproj -scheme Notepad build 2>&1 | tail -5)
+   # If you ran tests, also capture: TEST_TAIL=$(xcodebuild ... test 2>&1 | tail -5)
    ```
-   If `gh issue close` fails after a successful push, still write `closed:<N>` — the push is the source of truth; the issue can be closed manually.
+
+   Then use the `write` tool to write the following template to `/tmp/ralph-close-<N>.md`, filling in every section. **Do not skip sections.** Mark every acceptance criterion either `[x]` (done + how you verified) or `[ ]` (with an honest reason it was deferred):
+
+   ```markdown
+   **Implemented in `<short SHA>`** via automated Ralph loop · model: `<provider>/<model>`
+
+   ## Summary
+   <2–4 sentences in your own words: what this slice now does end-to-end, the user-visible behavior, and any non-obvious implementation choices.>
+
+   ## Acceptance criteria — verification
+   <Copy every `- [ ]` bullet from the issue body. For each, change to `- [x]` and append ` — <one-line evidence>` describing how you verified it (built and ran, manual test, code inspection, test name).>
+
+   ## Build
+   ```
+   xcodebuild -project Notepad.xcodeproj -scheme Notepad build  →  exit 0
+   ```
+   Last lines:
+   ```
+   <BUILD_TAIL>
+   ```
+
+   ## Tests
+   <One of:
+    - `N XCTest cases passed in NotepadTests/<file>.swift` plus the relevant tail, OR
+    - `No unit tests required by this slice's acceptance criteria.`>
+
+   ## Files changed (this commit)
+   <FILES list>
+
+   ## Notes / follow-ups
+   <Anything the next iteration or a reviewer should know: known limitations, TODOs, deviations from the PRD with rationale. Write "None." if there's nothing.>
+   ```
+
+   Then post and close:
+
+   ```
+   gh issue comment <N> --repo samantha-network4all-bot/slate --body-file /tmp/ralph-close-<N>.md
+   gh issue close   <N> --repo samantha-network4all-bot/slate --reason completed
+   ```
+
+   If `gh issue comment` succeeds but `gh issue close` fails, still write `closed:<N>` — the comment + push are the source of truth; the issue can be closed manually.
+
+   If `gh issue comment` itself fails (rate limit, network), fall through to `gh issue close <N> --comment "Implemented in $SHA — comment body in $(pwd)/.ralph-logs/close-<N>.md"` and copy the temp file to that path as a backup.
 7. Write `closed:<N>` to `.ralph-status`.
 8. Print `[ralph] iter result: closed:<N>` and stop.
 

@@ -10,6 +10,14 @@ Your final action every iteration **must** be writing one line to `.ralph-status
 
 ---
 
+## Tool-use discipline (read this first)
+
+Use the runtime's native tool-call protocol. **Do not emit literal `<tool_call>`, `<function=…>`, or any other plain-text tool-call syntax** in your reasoning or output — the runtime ignores it and the turn is wasted. If you need to do something, call the appropriate tool (`bash`, `read`, `edit`, `write`, `grep`, `find`, `ls`) via the normal mechanism. If you find yourself "writing" what a command would do, stop and actually invoke it.
+
+When you call `bash`, prefer short, single-purpose commands over long pipelines so failures are easier to diagnose. Capture only the tail of large outputs (`| tail -50`).
+
+---
+
 ## Context
 
 - **Working directory**: `/Users/arjen/Documents/bimboware/notepad/` (you are already there).
@@ -74,6 +82,20 @@ Let `N` be the chosen issue number.
 ---
 
 ## Step 3 — Build & verify
+
+### Bootstrapping the Xcode project
+
+The Xcode project is generated from `Project.yml` by `xcodegen` — **never hand-edit `Notepad.xcodeproj/project.pbxproj`**. If you need a new target, source folder, or build setting, edit `Project.yml` and re-run `xcodegen generate`.
+
+Before building, ensure the project file exists:
+
+```
+[ -f Notepad.xcodeproj/project.pbxproj ] || xcodegen generate
+```
+
+If `xcodegen` fails or is missing, that is a fatal error for this iteration — comment on the issue with the error and write `failed:<N>`.
+
+### Build
 
 Run the build:
 

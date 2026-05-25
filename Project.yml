@@ -1,0 +1,71 @@
+# xcodegen spec — regenerates Notepad.xcodeproj from this YAML.
+# Run:  xcodegen generate
+#
+# Why this file exists:
+#   project.pbxproj is hundreds of lines of UUID-cross-referenced ASCII-plist
+#   that an LLM (especially a small local one) cannot author reliably. This
+#   YAML is the single source of truth; the .xcodeproj is a build artifact.
+#
+# When you need to add a target or change settings: edit THIS file, then run
+# `xcodegen generate`. Never edit project.pbxproj by hand.
+
+name: Notepad
+
+options:
+  deploymentTarget:
+    macOS: "13.0"
+  developmentLanguage: en
+  generateEmptyDirectories: true
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    PRODUCT_BUNDLE_IDENTIFIER: com.bimboware.notepad
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "-"
+    ENABLE_HARDENED_RUNTIME: YES
+
+targets:
+  Notepad:
+    type: application
+    platform: macOS
+    deploymentTarget: "13.0"
+    sources:
+      - path: Notepad
+        excludes:
+          - "Info.plist"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bimboware.notepad
+        PRODUCT_NAME: Notepad
+        INFOPLIST_FILE: Notepad/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        COMBINE_HIDPI_IMAGES: YES
+    scheme:
+      testTargets:
+        - NotepadTests
+      gatherCoverageData: false
+      commandLineArguments: {}
+      environmentVariables: {}
+
+  NotepadTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "13.0"
+    sources:
+      - path: NotepadTests
+        optional: true
+        createIntermediateGroups: true
+    dependencies:
+      - target: Notepad
+    settings:
+      base:
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Notepad.app/Contents/MacOS/Notepad"
+        PRODUCT_BUNDLE_IDENTIFIER: com.bimboware.notepad.tests
+        GENERATE_INFOPLIST_FILE: YES

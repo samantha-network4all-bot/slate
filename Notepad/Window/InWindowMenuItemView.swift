@@ -58,12 +58,10 @@ class InWindowMenuItemView: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
-        // Create a placeholder menu with one disabled item
-        let menu = NSMenu()
-        let item = NSMenuItem(title: "(coming soon)", action: nil, keyEquivalent: "")
-        item.isEnabled = false
-        menu.addItem(item)
-        menu.popUp(positioning: nil, at: NSPoint(x: frame.minX, y: frame.minY), in: self)
+        if let parent = superview as? InWindowMenuBarView {
+            let point = NSPoint(x: frame.minX, y: frame.minY)
+            parent.popUpMenu(for: self, at: point)
+        }
     }
 
     override func draw(_ dirtyRect: NSRect) {

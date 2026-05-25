@@ -18,6 +18,11 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     }
 
     init() {
+        // Set the main menu bar on first window
+        if NSApp.mainMenu == nil {
+            NSApp.mainMenu = MenuBuilder.build()
+        }
+
         let frame = Self.defaultFrameStatic()
         let window = NotepadWindow(
             contentRect: frame,
@@ -68,10 +73,20 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     private func setupMenuBar() {
         guard let window = window else { return }
         let h = Metrics.menuBarHeight
-        let menuBar = InWindowMenuBarView(frame: NSRect(
-            x: 0, y: window.frame.height - Metrics.titleBarHeight - h,
-            width: window.frame.width, height: h
-        ))
+        let builders: [String: () -> NSMenu] = [
+            "File": MenuBuilder.buildFileMenu,
+            "Edit": MenuBuilder.buildEditMenu,
+            "Format": MenuBuilder.buildFormatMenu,
+            "View": MenuBuilder.buildViewMenu,
+            "Help": MenuBuilder.buildHelpMenu
+        ]
+        let menuBar = InWindowMenuBarView(
+            frame: NSRect(
+                x: 0, y: window.frame.height - Metrics.titleBarHeight - h,
+                width: window.frame.width, height: h
+            ),
+            menuBuilders: builders
+        )
         window.contentView?.addSubview(menuBar)
         menuBarView = menuBar
     }
@@ -139,6 +154,128 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     private func updateWindowTitle() {
         window?.title = documentState.title
         titleBarView.setTitle(documentState.title)
+    }
+
+    // MARK: - About Dialog
+
+    @objc func showAbout() {
+        let dialog = AboutDialog()
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.runModal(for: dialog.window!)
+        dialog.close()
+    }
+
+    // MARK: - Standard Edit Actions (delegated to first responder)
+
+    @objc func undo(_ sender: Any?) {
+        editorScrollView.editor.undoManager?.undo()
+    }
+
+    @objc func redo(_ sender: Any?) {
+        editorScrollView.editor.undoManager?.redo()
+    }
+
+    @objc func cut(_ sender: Any?) {
+        editorScrollView.editor.cut(nil)
+    }
+
+    @objc func copy(_ sender: Any?) {
+        editorScrollView.editor.copy(nil)
+    }
+
+    @objc func paste(_ sender: Any?) {
+        editorScrollView.editor.paste(nil)
+    }
+
+    @objc func delete(_ sender: Any?) {
+        editorScrollView.editor.delete(nil)
+    }
+
+    @objc func editorSelectAll() {
+        editorScrollView.editor.selectAll(nil)
+    }
+
+    // MARK: - File Menu
+
+    @objc func fileNew() {
+        DocumentController.shared.newWindow().showWindow(self)
+    }
+
+    @objc func fileOpen() {
+        // Placeholder for FileBrowserDialog (future issue)
+    }
+
+    @objc func fileSave() {
+        save(nil)
+    }
+
+    @objc func fileSaveAs() {
+        presentSavePanel()
+    }
+
+    @objc func pageSetup() {
+        let dialog = PageSetupDialog()
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.runModal(for: dialog.window!)
+        dialog.close()
+    }
+
+    @objc func filePrint() {
+        // Placeholder for print functionality (future issue)
+    }
+
+    // MARK: - Edit Menu
+
+    @objc func insertTimeDate() {
+        // Placeholder for time/date insertion (future issue)
+    }
+
+    @objc func showFind() {
+        // Placeholder for Find dialog (future issue)
+    }
+
+    @objc func findNext() {
+        // Placeholder (future issue)
+    }
+
+    @objc func findPrevious() {
+        // Placeholder (future issue)
+    }
+
+    @objc func showReplace() {
+        // Placeholder for Replace dialog (future issue)
+    }
+
+    @objc func showGoToLine() {
+        // Placeholder for Go To Line dialog (future issue)
+    }
+
+    // MARK: - Format Menu
+
+    @objc func toggleWordWrap() {
+        // Placeholder for word wrap toggle (future issue)
+    }
+
+    @objc func showFontDialog() {
+        // Placeholder for Font dialog (future issue)
+    }
+
+    // MARK: - View Menu
+
+    @objc func zoomIn() {
+        // Placeholder for zoom in (future issue)
+    }
+
+    @objc func zoomOut() {
+        // Placeholder for zoom out (future issue)
+    }
+
+    @objc func resetZoom() {
+        // Placeholder for reset zoom (future issue)
+    }
+
+    @objc func toggleStatusBar() {
+        // Placeholder for status bar toggle (future issue)
     }
 
     // MARK: - Save

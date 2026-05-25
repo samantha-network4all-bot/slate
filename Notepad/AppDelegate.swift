@@ -13,7 +13,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func showAbout() {
-        NSApplication.shared.orderFrontStandardAboutPanel(nil)
+        // Open About dialog on the frontmost window
+        if let frontController = DocumentController.shared.windows.last,
+           let window = frontController.window {
+            let dialog = AboutDialog()
+            window.makeKeyAndOrderFront(nil)
+            NSApplication.shared.runModal(for: dialog.window!)
+            dialog.close()
+        }
     }
 
     @objc func quitApp() {

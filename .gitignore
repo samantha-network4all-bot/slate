@@ -1,0 +1,7 @@
+.ralph-status
+build/
+DerivedData/
+*.xcuserstate
+.DS_Store
+xcuserdata/
+*.xcworkspace/xcuserdata/

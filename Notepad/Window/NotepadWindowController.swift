@@ -251,7 +251,59 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc func fileOpen() {
-        // Placeholder for FileBrowserDialog (future issue)
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.utf8PlainText, .utf16PlainText]
+        panel.allowsMultipleSelection = false
+
+        let result = panel.runModal()
+        if result == .OK, let url = panel.url {
+            openFile(at: url)
+        }
+    }
+
+    func openFile(at url: URL) {
+        do {
+            let (text, encoding, eol) = try DocumentReader.read(from: url)
+
+            documentState.url = url
+            documentState.text = text
+            documentState.encoding = encoding
+            documentState.lineEnding = eol
+            documentState.isDirty = false
+
+            // Update editor content
+            editorScrollView.editor?.string = text
+
+            // Update title bar
+            updateWindowTitle()
+
+            // Update status bar segments
+            statusBarView.updateEncoding(encodingStatusLabel(for: encoding))
+            statusBarView.updateEOL(eolStatusLabel(for: eol))
+
+            // Show the window
+            showWindow(self)
+            window?.makeKeyAndOrderFront(nil)
+        } catch {
+            // Silent failure per PRD §21
+        }
+    }
+
+    private func encodingStatusLabel(for encoding: DocumentEncoding) -> String {
+        switch encoding {
+        case .utf8: return "UTF-8"
+        case .utf8WithBOM: return "UTF-8 with BOM"
+        case .utf16LE: return "UTF-16 LE"
+        case .utf16BE: return "UTF-16 BE"
+        }
+    }
+
+    private func eolStatusLabel(for eol: LineEnding) -> String {
+        switch eol {
+        case .crlf: return "Windows (CRLF)"
+        case .lf: return "Unix (LF)"
+        case .cr: return "Macintosh (CR)"
+        }
     }
 
     @objc func fileSave() {
@@ -367,11 +419,16 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     private func setupKeyboardShortcuts() {
         shortcutMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event -> NSEvent? in
             guard let self = self else { return event }
-            if event.modifierFlags.contains(.command) &&
-               !event.modifierFlags.contains(.shift) &&
-               !event.modifierFlags.contains(.control) &&
-               event.characters?.lowercased() == "s" {
+            let cmdOnly = event.modifierFlags.contains(.command) &&
+                          !event.modifierFlags.contains(.shift) &&
+                          !event.modifierFlags.contains(.control)
+            let char = event.characters?.lowercased()
+            if cmdOnly && char == "s" {
                 self.save(nil)
+                return nil // consume event
+            }
+            if cmdOnly && char == "o" {
+                self.fileOpen()
                 return nil // consume event
             }
             return event

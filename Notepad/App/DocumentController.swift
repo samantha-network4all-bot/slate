@@ -13,6 +13,12 @@ class DocumentController {
         return controller
     }
 
+    func openFile(at url: URL) -> NotepadWindowController {
+        let controller = newWindow()
+        controller.openFile(at: url)
+        return controller
+    }
+
     func closeWindow(_ controller: NotepadWindowController) {
         if let index = windows.firstIndex(where: { $0 === controller }) {
             windows.remove(at: index)

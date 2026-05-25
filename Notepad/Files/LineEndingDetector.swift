@@ -23,12 +23,18 @@ enum LineEndingDetector {
             }
         }
 
+        // Strict majority wins
         if crlf > lf && crlf > cr { return .crlf }
-        if lf > cr { return .lf }
-        if cr > 0 && (crlf == 0 && lf == 0) { return .cr }
-        // Tie-break: CRLF > LF > CR
-        if crlf >= lf && crlf >= cr { return .crlf }
-        if lf >= cr { return .lf }
-        return .cr
+        if lf > crlf && lf > cr { return .lf }
+        if cr > crlf && cr > lf { return .cr }
+
+        // Tie-break priority: CRLF > LF > CR
+        let maxCount = max(crlf, lf, cr)
+        if crlf == maxCount { return .crlf }
+        if lf == maxCount { return .lf }
+        if cr == maxCount { return .cr }
+
+        // No line endings found
+        return .crlf
     }
 }

@@ -19,7 +19,7 @@ set -euo pipefail
 
 readonly REPO="${RALPH_REPO:-samantha-network4all-bot/slate}"
 readonly MAX="${1:-9999}"
-readonly ITER_TIMEOUT="${RALPH_ITER_TIMEOUT:-1800}"
+readonly ITER_TIMEOUT="${RALPH_ITER_TIMEOUT:-7200}"
 readonly STATUS_FILE=".ralph-status"
 readonly PROMPT_FILE="PROMPT.md"
 
@@ -107,7 +107,7 @@ for ((i = 1; i <= MAX; i++)); do
   "$TIMEOUT_BIN" "$ITER_TIMEOUT" pi --print --no-session \
     --append-system-prompt "$PROMPT_FILE" \
     --tools read,bash,edit,write,grep,find,ls \
-    "${PI_ARGS_ARR[@]}" \
+    ${PI_ARGS_ARR[@]+"${PI_ARGS_ARR[@]}"} \
     "Run one Ralph iteration. Working repo is $REPO. Follow PROMPT.md exactly. End by writing $STATUS_FILE."
   pi_rc=$?
   set -e

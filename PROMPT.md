@@ -58,15 +58,16 @@ Print `[ralph] iter result: empty` and stop. Do nothing else.
 
 Let `N` be the chosen issue number.
 
-1. Read `PRD.md` in full. It is the authoritative spec.
-2. Read the issue body in full:
+1. Run `git status` and `git diff --stat` to check for uncommitted work left behind by a previous timed-out iteration. If files already exist that match this issue's scope, treat them as in-progress work to **continue and complete**, not as garbage to overwrite. Re-creating identical files wastes the budget you have for this iteration.
+2. Read `PRD.md` in full. It is the authoritative spec.
+3. Read the issue body in full:
    ```
    gh issue view <N> --repo samantha-network4all-bot/slate --json title,body
    ```
-3. Make code edits under `Notepad/` (the source root described in `PRD.md` §3) to satisfy **every** unchecked `- [ ]` item under the issue's "Acceptance criteria" section.
-4. Use the file/folder layout, class names, and `Theme/Colors.swift`, `Theme/Fonts.swift`, `Theme/Metrics.swift` values from `PRD.md` exactly — do not rename, restructure, or substitute.
-5. Use `grep`, `find`, `ls`, and `read` to navigate code added by previous iterations. Do not duplicate work that prior iterations completed.
-6. Stay within the chosen issue's scope. Do not implement other issues' acceptance criteria opportunistically — even if it would only take a moment.
+4. Make code edits under `Notepad/` (the source root described in `PRD.md` §3) to satisfy **every** unchecked `- [ ]` item under the issue's "Acceptance criteria" section.
+5. Use the file/folder layout, class names, and `Theme/Colors.swift`, `Theme/Fonts.swift`, `Theme/Metrics.swift` values from `PRD.md` exactly — do not rename, restructure, or substitute.
+6. Use `grep`, `find`, `ls`, and `read` to navigate code added by previous iterations. Do not duplicate work that prior iterations completed.
+7. Stay within the chosen issue's scope. Do not implement other issues' acceptance criteria opportunistically — even if it would only take a moment.
 
 **Files you must never modify**: `PRD.md`, `PROMPT.md`, `ralph.sh`, `.gitignore`, `notepad.png`.
 

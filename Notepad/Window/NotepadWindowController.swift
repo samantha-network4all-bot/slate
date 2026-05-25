@@ -2,6 +2,12 @@ import AppKit
 
 class NotepadWindowController: NSWindowController, NSWindowDelegate {
     private var titleBarView: TitleBarView!
+    private var menuBarView: InWindowMenuBarView!
+    private var editorScrollView: EditorScrollView!
+    private var statusBarView: StatusBarView!
+    private var shortcutMonitor: Any?
+
+    let documentState = DocumentState()
 
     override init(window: NSWindow?) {
         super.init(window: nil)
@@ -19,7 +25,7 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "Untitled - Notepad"
+        window.title = documentState.title
         window.titleVisibility = .hidden
         window.isOpaque = true
         window.backgroundColor = Colors.chromeBackground
@@ -28,6 +34,12 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         window.delegate = self
 
         setupTitleBar()
+        setupMenuBar()
+        setupEditor()
+        setupStatusBar()
+        setupDirtyTracking()
+        setupKeyboardShortcuts()
+        layoutAllSubviews()
     }
 
     private static func defaultFrameStatic() -> NSRect {
@@ -38,32 +50,159 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         return NSRect(x: x, y: y, width: size.width, height: size.height)
     }
 
+    // MARK: - UI Setup
+
     private func setupTitleBar() {
         guard let window = window else { return }
         let height = Metrics.titleBarHeight
-        let titleBar = TitleBarView(frame: NSRect(x: 0, y: window.frame.height - height, width: window.frame.width, height: height))
+        let titleBar = TitleBarView(frame: NSRect(
+            x: 0, y: window.frame.height - height,
+            width: window.frame.width, height: height
+        ))
         titleBar.parentWindow = window
+        titleBar.setTitle(documentState.title)
         window.contentView?.addSubview(titleBar)
         titleBarView = titleBar
-
-        window.setFrameOrigin(NSMakePoint(
-            window.frame.origin.x,
-            window.frame.origin.y
-        ))
     }
 
+    private func setupMenuBar() {
+        guard let window = window else { return }
+        let h = Metrics.menuBarHeight
+        let menuBar = InWindowMenuBarView(frame: NSRect(
+            x: 0, y: window.frame.height - Metrics.titleBarHeight - h,
+            width: window.frame.width, height: h
+        ))
+        window.contentView?.addSubview(menuBar)
+        menuBarView = menuBar
+    }
+
+    private func setupEditor() {
+        guard let window = window else { return }
+        let editorSV = EditorScrollView(frame: .zero)
+        window.contentView?.addSubview(editorSV)
+        editorScrollView = editorSV
+    }
+
+    private func setupStatusBar() {
+        guard let window = window else { return }
+        let h = Metrics.statusBarHeight
+        let statusBar = StatusBarView(frame: NSRect(
+            x: 0, y: 0,
+            width: window.frame.width, height: h
+        ))
+        window.contentView?.addSubview(statusBar)
+        statusBarView = statusBar
+    }
+
+    private func setupDirtyTracking() {
+        let center = NotificationCenter.default
+        center.addObserver(
+            self,
+            selector: #selector(textDidChange(_:)),
+            name: NSText.didChangeNotification,
+            object: editorScrollView.editor?.textStorage
+        )
+    }
+
+    private func layoutAllSubviews() {
+        guard let window = window else { return }
+        let w = window.frame.width
+        let h = window.frame.height
+
+        titleBarView.frame = NSRect(x: 0, y: h - Metrics.titleBarHeight, width: w, height: Metrics.titleBarHeight)
+        menuBarView.frame = NSRect(
+            x: 0,
+            y: h - Metrics.titleBarHeight - Metrics.menuBarHeight,
+            width: w,
+            height: Metrics.menuBarHeight
+        )
+        statusBarView.frame = NSRect(x: 0, y: 0, width: w, height: Metrics.statusBarHeight)
+
+        let editorTop = h - Metrics.titleBarHeight - Metrics.menuBarHeight
+        let editorBottom = Metrics.statusBarHeight
+        editorScrollView.frame = NSRect(
+            x: 0,
+            y: editorBottom,
+            width: w,
+            height: editorTop - editorBottom
+        )
+    }
+
+    // MARK: - Dirty State
+
+    @objc private func textDidChange(_ notification: Notification) {
+        documentState.text = editorScrollView.editor?.string ?? ""
+        documentState.isDirty = true
+        updateWindowTitle()
+    }
+
+    private func updateWindowTitle() {
+        window?.title = documentState.title
+        titleBarView.setTitle(documentState.title)
+    }
+
+    // MARK: - Save
+
+    @objc private func save(_ sender: Any?) {
+        if let url = documentState.url {
+            saveTo(url)
+        } else {
+            presentSavePanel()
+        }
+    }
+
+    private func presentSavePanel() {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "Untitled"
+        panel.allowedContentTypes = [.item]
+        panel.isExtensionHidden = false
+        panel.allowsOtherFileTypes = true
+
+        let result = panel.runModal()
+        if result == .OK, let url = panel.url {
+            documentState.url = url
+            saveTo(url)
+        }
+    }
+
+    private func saveTo(_ url: URL) {
+        do {
+            let text = editorScrollView.editor?.string ?? ""
+            try DocumentWriter.write(text, to: url, encoding: documentState.encoding, lineEnding: documentState.lineEnding)
+            documentState.isDirty = false
+            updateWindowTitle()
+        } catch {
+            // Silent failure per PRD §21
+        }
+    }
+
+    // MARK: - Keyboard Shortcuts
+
+    private func setupKeyboardShortcuts() {
+        shortcutMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event -> NSEvent? in
+            guard let self = self else { return event }
+            if event.modifierFlags.contains(.command) &&
+               !event.modifierFlags.contains(.shift) &&
+               !event.modifierFlags.contains(.control) &&
+               event.characters?.lowercased() == "s" {
+                self.save(nil)
+                return nil // consume event
+            }
+            return event
+        }
+    }
+
+    // MARK: - NSWindowDelegate
+
     func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
-        // Keep title bar at the top during resize
         return frameSize
     }
 
     func windowDidResize(_ notification: Notification) {
-        guard let window = window, let titleBar = titleBarView else { return }
-        titleBar.frame = NSRect(
-            x: 0,
-            y: window.frame.height - Metrics.titleBarHeight,
-            width: window.frame.width,
-            height: Metrics.titleBarHeight
-        )
+        layoutAllSubviews()
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        DocumentController.shared.closeWindow(self)
     }
 }

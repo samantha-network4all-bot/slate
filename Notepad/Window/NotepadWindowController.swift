@@ -17,13 +17,13 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         super.init(coder: coder)
     }
 
-    init() {
+    init(frame: NSRect? = nil) {
         // Set the main menu bar on first window
         if NSApp.mainMenu == nil {
             NSApp.mainMenu = MenuBuilder.build()
         }
 
-        let frame = Self.defaultFrameStatic()
+        let frame = frame ?? Self.restoreFrame() ?? Self.defaultFrameStatic()
         let window = NotepadWindow(
             contentRect: frame,
             styleMask: [.borderless, .resizable, .miniaturizable],
@@ -53,6 +53,30 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         let x = screen.visibleFrame.maxX - size.width
         let y = screen.visibleFrame.maxY - size.height
         return NSRect(x: x, y: y, width: size.width, height: size.height)
+    }
+
+    // MARK: - Frame persistence
+
+    /// Restore the last-saved window frame from UserDefaults.
+    /// Returns nil if no frame was saved.
+    static func restoreFrame() -> NSRect? {
+        guard let rect = UserDefaults.standard.value(forKey: "lastFrame.0") as? NSValue else {
+            return nil
+        }
+        return rect.rectValue
+    }
+
+    /// Save the current window frame to UserDefaults.
+    static func saveFrame(_ frame: NSRect) {
+        UserDefaults.standard.set(NSValue(rect: frame), forKey: "lastFrame.0")
+    }
+
+    /// Compute a cascading frame offset +22pt right and -22pt down from a source frame.
+    static func cascadedFrame(from sourceFrame: NSRect) -> NSRect {
+        var newFrame = sourceFrame
+        newFrame.origin.x += 22
+        newFrame.origin.y -= 22
+        return newFrame
     }
 
     // MARK: - UI Setup
@@ -198,7 +222,8 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     // MARK: - File Menu
 
     @objc func fileNew() {
-        DocumentController.shared.newWindow().showWindow(self)
+        let controller = DocumentController.shared.newWindow(sourceController: self)
+        controller.showWindow(self)
     }
 
     @objc func fileOpen() {
@@ -340,6 +365,8 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
+        // Save frame before closing
+        Self.saveFrame(window?.frame ?? .zero)
         DocumentController.shared.closeWindow(self)
     }
 }

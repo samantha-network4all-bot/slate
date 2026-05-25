@@ -4,7 +4,9 @@ import AppKit
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         _ = DocumentController.shared
-        let controller = DocumentController.shared.newWindow()
+        // Restore saved frame or use default (top-right 900x700)
+        let savedFrame = NotepadWindowController.restoreFrame()
+        let controller = NotepadWindowController(frame: savedFrame)
         controller.showWindow(self)
     }
 

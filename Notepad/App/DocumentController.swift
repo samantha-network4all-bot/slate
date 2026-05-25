@@ -6,8 +6,9 @@ class DocumentController {
 
     private(set) var windows: [NotepadWindowController] = []
 
-    func newWindow() -> NotepadWindowController {
-        let controller = NotepadWindowController()
+    func newWindow(sourceController: NotepadWindowController? = nil) -> NotepadWindowController {
+        let sourceFrame = sourceController?.window?.frame
+        let controller = NotepadWindowController(cascadeFrom: sourceFrame)
         windows.append(controller)
         return controller
     }

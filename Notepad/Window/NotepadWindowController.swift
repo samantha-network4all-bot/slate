@@ -17,13 +17,13 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         super.init(coder: coder)
     }
 
-    init() {
+    init(cascadeFrom: NSRect? = nil) {
         // Set the main menu bar on first window
         if NSApp.mainMenu == nil {
             NSApp.mainMenu = MenuBuilder.build()
         }
 
-        let frame = Self.defaultFrameStatic()
+        let frame = Self.computeLaunchFrame(cascadeFrom: cascadeFrom)
         let window = NotepadWindow(
             contentRect: frame,
             styleMask: [.borderless, .resizable, .miniaturizable],
@@ -53,6 +53,55 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         let x = screen.visibleFrame.maxX - size.width
         let y = screen.visibleFrame.maxY - size.height
         return NSRect(x: x, y: y, width: size.width, height: size.height)
+    }
+
+    /// Restore a previously saved window frame from UserDefaults.
+    private static func restoreSavedFrame() -> NSRect? {
+        let defaults = UserDefaults.standard
+        guard let x = defaults.object(forKey: "lastFrame.0.x") as? Double,
+              let y = defaults.object(forKey: "lastFrame.0.y") as? Double,
+              let w = defaults.object(forKey: "lastFrame.0.width") as? Double,
+              let h = defaults.object(forKey: "lastFrame.0.height") as? Double else {
+            return nil
+        }
+        return NSRect(x: x, y: y, width: w, height: h)
+    }
+
+    /// Save the window frame to UserDefaults.
+    static func saveFrame(_ frame: NSRect) {
+        let defaults = UserDefaults.standard
+        defaults.set(frame.origin.x, forKey: "lastFrame.0.x")
+        defaults.set(frame.origin.y, forKey: "lastFrame.0.y")
+        defaults.set(frame.size.width, forKey: "lastFrame.0.width")
+        defaults.set(frame.size.height, forKey: "lastFrame.0.height")
+        defaults.synchronize()
+    }
+
+    /// Compute the initial frame: cascade from source, or restore saved frame, or default.
+    private static func computeLaunchFrame(cascadeFrom: NSRect?) -> NSRect {
+        if let source = cascadeFrom {
+            // Cascade: +22pt right, -22pt down from the source window.
+            var frame = source
+            frame.origin.x += 22
+            frame.origin.y -= 22
+            // Clamp within the screen.
+            let screen = NSScreen.main!
+            if frame.origin.x + frame.width > screen.visibleFrame.maxX {
+                frame.origin.x = screen.visibleFrame.maxX - frame.width
+            }
+            if frame.origin.y < screen.visibleFrame.minY {
+                frame.origin.y = screen.visibleFrame.minY
+            }
+            return frame
+        }
+
+        // Check saved frame from last session.
+        if let saved = Self.restoreSavedFrame() {
+            return saved
+        }
+
+        // First launch: top-right default.
+        return defaultFrameStatic()
     }
 
     // MARK: - UI Setup
@@ -198,7 +247,7 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     // MARK: - File Menu
 
     @objc func fileNew() {
-        DocumentController.shared.newWindow().showWindow(self)
+        DocumentController.shared.newWindow(sourceController: self).showWindow(self)
     }
 
     @objc func fileOpen() {
@@ -340,6 +389,10 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
+        // Save window frame for restoration on next launch.
+        if let frame = window?.frame {
+            Self.saveFrame(frame)
+        }
         DocumentController.shared.closeWindow(self)
     }
 }

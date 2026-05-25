@@ -1,4 +1,6 @@
 .ralph-status
+.ralph-logs/
+buidlog-pi.log
 build/
 DerivedData/
 *.xcuserstate

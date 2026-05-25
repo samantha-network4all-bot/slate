@@ -22,6 +22,9 @@ readonly MAX="${1:-9999}"
 readonly ITER_TIMEOUT="${RALPH_ITER_TIMEOUT:-7200}"
 readonly STATUS_FILE=".ralph-status"
 readonly PROMPT_FILE="PROMPT.md"
+readonly LOG_FILE="buidlog-pi.log"          # aggregated pretty log; `tail -f` me
+readonly RAW_LOG_DIR=".ralph-logs"          # per-iteration raw pi json
+readonly FORMATTER="./ralph-format.sh"
 
 # ---------- preflight ----------
 
@@ -32,6 +35,9 @@ cd "$(dirname "$0")"
 command -v pi >/dev/null   || { echo "ralph: 'pi' not on PATH" >&2; exit 2; }
 command -v gh >/dev/null   || { echo "ralph: 'gh' not on PATH" >&2; exit 2; }
 command -v git >/dev/null  || { echo "ralph: 'git' not on PATH" >&2; exit 2; }
+command -v jq >/dev/null   || { echo "ralph: 'jq' not on PATH (brew install jq)" >&2; exit 2; }
+[[ -x "$FORMATTER" ]]      || { echo "ralph: $FORMATTER not executable" >&2; exit 2; }
+mkdir -p "$RAW_LOG_DIR"
 
 # Prefer GNU `timeout`; fall back to `gtimeout` (Homebrew coreutils).
 if command -v timeout >/dev/null; then
@@ -97,20 +103,37 @@ read -r -a PI_ARGS_ARR <<<"${PI_ARGS:-}"
 unknown_streak=0
 
 for ((i = 1; i <= MAX; i++)); do
-  echo "ralph: iter $i / $MAX (repo=$REPO, timeout=${ITER_TIMEOUT}s)"
+  ts="$(date +%Y%m%d-%H%M%S)"
+  raw_log="$RAW_LOG_DIR/iter-${i}-${ts}.json"
+
+  banner="── ralph iter $i / $MAX · $(date '+%F %T') · repo=$REPO · timeout=${ITER_TIMEOUT}s ──"
+  echo "$banner"
+  echo "$banner" >> "$LOG_FILE"
   rm -f "$STATUS_FILE"
 
-  # Pi is invoked fresh each iteration (--no-session) so it re-reads PRD.md
-  # and the chosen issue body from scratch. The prompt instructs it to write
-  # $STATUS_FILE as its last action.
+  # Pi is invoked fresh each iteration (--no-session) and emits JSON events
+  # to stdout. Stderr (backend errors, startup noise) goes straight to the
+  # aggregated log. Stdout is teed raw to a per-iteration json log AND
+  # passed through the formatter for human-readable progress, which is then
+  # teed to both the terminal and the aggregated log.
+  set +o pipefail
   set +e
-  "$TIMEOUT_BIN" "$ITER_TIMEOUT" pi --print --no-session \
+  "$TIMEOUT_BIN" "$ITER_TIMEOUT" pi --print --no-session --mode json \
     --append-system-prompt "$PROMPT_FILE" \
     --tools read,bash,edit,write,grep,find,ls \
     ${PI_ARGS_ARR[@]+"${PI_ARGS_ARR[@]}"} \
-    "Run one Ralph iteration. Working repo is $REPO. Follow PROMPT.md exactly. End by writing $STATUS_FILE."
-  pi_rc=$?
+    "Run one Ralph iteration. Working repo is $REPO. Follow PROMPT.md exactly. End by writing $STATUS_FILE." \
+    2>>"$LOG_FILE" \
+    | tee "$raw_log" \
+    | "$FORMATTER" \
+    | tee -a "$LOG_FILE"
+  pi_rc=${PIPESTATUS[0]}
   set -e
+  set -o pipefail
+
+  # Update the convenience symlink so `tail -f .ralph-logs/latest.json` always
+  # points at the current iteration.
+  ln -sfn "$(basename "$raw_log")" "$RAW_LOG_DIR/latest.json"
 
   status=$(cat "$STATUS_FILE" 2>/dev/null || echo "missing")
 

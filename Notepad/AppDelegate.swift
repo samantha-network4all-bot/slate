@@ -119,14 +119,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func showOpenPanel() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.utf8PlainText, .utf16PlainText]
-        panel.allowsMultipleSelection = false
-        
-        let result = panel.runModal()
-        if result == .OK, let url = panel.url {
+        let fileBrowser = FileBrowserDialog(saveAsMode: false) { url in
             _ = DocumentController.shared.openFile(at: url)
         }
+        fileBrowser.show()
     }
     
     private func saveActiveDocument() {

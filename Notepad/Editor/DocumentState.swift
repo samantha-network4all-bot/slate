@@ -1,17 +1,33 @@
 import AppKit
 import Foundation
 
-enum DocumentEncoding {
-    case utf8
-    case utf8WithBOM
-    case utf16LE
-    case utf16BE
+enum DocumentEncoding: String {
+    case utf8 = "UTF-8"
+    case utf8WithBOM = "UTF-8 with BOM"
+    case utf16LE = "UTF-16 LE"
+    case utf16BE = "UTF-16 BE"
 }
 
-enum LineEnding {
-    case crlf
-    case lf
-    case cr
+enum LineEnding: String, CaseIterable {
+    case crlf = "Windows (CRLF)"
+    case lf = "Unix (LF)"
+    case cr = "Macintosh (CR)"
+    
+    var displayString: String {
+        switch self {
+        case .crlf: return "Windows (CRLF)"
+        case .lf: return "Unix (LF)"
+        case .cr: return "Macintosh (CR)"
+        }
+    }
+    
+    var eolString: String {
+        switch self {
+        case .crlf: return "\r\n"
+        case .lf: return "\n"
+        case .cr: return "\r"
+        }
+    }
 }
 
 class DocumentState {

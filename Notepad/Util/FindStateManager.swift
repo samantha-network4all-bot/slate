@@ -9,9 +9,9 @@ class FindStateManager {
     var searchTerm: String = ""
     var matchCase: Bool = false
     var wrapAround: Bool = true
-    var direction: InlineFindEngine.Direction = .forward
+    var direction: FindEngine.Direction = .forward
     
-    func updateState(searchTerm: String, matchCase: Bool, wrapAround: Bool, direction: InlineFindEngine.Direction) {
+    func updateState(searchTerm: String, matchCase: Bool, wrapAround: Bool, direction: FindEngine.Direction) {
         self.searchTerm = searchTerm
         self.matchCase = matchCase
         self.wrapAround = wrapAround

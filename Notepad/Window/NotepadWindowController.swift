@@ -308,14 +308,10 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc func fileOpen() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.utf8PlainText, .utf16PlainText]
-        panel.allowsMultipleSelection = false
-
-        let result = panel.runModal()
-        if result == .OK, let url = panel.url {
-            openFile(at: url)
+        let fileBrowser = FileBrowserDialog(saveAsMode: false) { [weak self] url in
+            self?.openFile(at: url)
         }
+        fileBrowser.show()
     }
 
     func openFile(at url: URL) {
@@ -395,7 +391,7 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         editorScrollView.editor?.undoManager?.beginUndoGrouping()
         
         // Insert the timestamp at the current cursor position
-        editorScrollView.editor?.insertText(timestamp)
+        editorScrollView.editor?.insertText(timestamp, replacementRange: NSRange(location: 0, length: 0))
         
         // End undo group
         editorScrollView.editor?.undoManager?.endUndoGrouping()
@@ -459,7 +455,10 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc func showReplace() {
-        // Placeholder for Replace dialog (future issue)
+        let dialog = ReplaceDialog(editor: editorScrollView.editor)
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.runModal(for: dialog.window!)
+        dialog.close()
     }
 
     @objc func showGoToLine() {
@@ -588,17 +587,43 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     }
 
     private func presentSavePanel() {
-        let panel = NSSavePanel()
-        panel.nameFieldStringValue = "Untitled"
-        panel.allowedContentTypes = [.item]
-        panel.isExtensionHidden = false
-        panel.allowsOtherFileTypes = true
-
-        let result = panel.runModal()
-        if result == .OK, let url = panel.url {
-            documentState.url = url
-            saveTo(url)
+        let fileBrowser = FileBrowserDialog(saveAsMode: true, initialPath: documentState.url ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!) {
+            [weak self] url, encoding, lineEnding in
+            self?.documentState.url = url
+            self?.documentState.encoding = encoding?.toDocumentEncoding() ?? self?.documentState.encoding ?? .utf8
+            self?.documentState.lineEnding = lineEnding?.toLineEnding() ?? self?.documentState.lineEnding ?? .crlf
+            self?.saveTo(url)
         }
+        
+        // Set default values from document state
+        // Find and set encoding dropdown
+        if let encodingDropdown = fileBrowser.window?.contentView?.subviews.first(where: { $0 is NSView && $0.subviews.contains(where: { $0 is NSPopUpButton }) }) as? NSView {
+            if let dropdown = encodingDropdown.subviews.first(where: { $0 is NSPopUpButton }) as? NSPopUpButton {
+                let encodingString = documentState.encoding.rawValue
+                if let index = dropdown.itemTitles.firstIndex(of: encodingString) {
+                    dropdown.selectItem(at: index)
+                }
+            }
+        }
+        
+        // Find and set line ending dropdown
+        if let lineEndingDropdown = fileBrowser.window?.contentView?.subviews.first(where: { $0 is NSView && $0.subviews.contains(where: { $0 is NSPopUpButton }) }) as? NSView {
+            if let dropdown = lineEndingDropdown.subviews.first(where: { $0 is NSPopUpButton }) as? NSPopUpButton {
+                let lineEndingString = documentState.lineEnding.rawValue
+                if let index = dropdown.itemTitles.firstIndex(of: lineEndingString) {
+                    dropdown.selectItem(at: index)
+                }
+            }
+        }
+        
+        // Set filename if available
+        if let fileName = documentState.url?.lastPathComponent {
+            if let fileNameField = fileBrowser.window?.contentView?.subviews.first(where: { $0 is NSTextField && ($0 as? NSTextField)?.placeholderString == "File name" }) as? NSTextField {
+                fileNameField.stringValue = fileName
+            }
+        }
+        
+        fileBrowser.show()
     }
 
     private func saveTo(_ url: URL) {
@@ -758,19 +783,21 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     }
     
     func presentSaveAsForUntitled(window: NSWindow) {
-        let panel = NSSavePanel()
-        panel.nameFieldStringValue = "Untitled"
-        panel.allowedContentTypes = [.item]
-        panel.isExtensionHidden = false
-        panel.allowsOtherFileTypes = true
-        
-        let result = panel.runModal()
-        if result == .OK, let url = panel.url {
-            documentState.url = url
-            save(nil)
+        let fileBrowser = FileBrowserDialog(saveAsMode: true, initialPath: FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!) {
+            [weak self] url, encoding, lineEnding in
+            self?.documentState.url = url
+            self?.documentState.encoding = encoding?.toDocumentEncoding() ?? self?.documentState.encoding ?? .utf8
+            self?.documentState.lineEnding = lineEnding?.toLineEnding() ?? self?.documentState.lineEnding ?? .crlf
+            self?.save(nil)
             // Save successful, window will be closed by the save completion
         }
-        // If cancelled, the window remains open - no action needed
+        
+        // Set default filename to Untitled
+        if let fileNameField = fileBrowser.window?.contentView?.subviews.first(where: { $0 is NSTextField && ($0 as? NSTextField)?.placeholderString == "File name" }) as? NSTextField {
+            fileNameField.stringValue = "Untitled"
+        }
+        
+        fileBrowser.show()
     }
     
     func windowWillClose(_ notification: Notification) {
@@ -922,5 +949,37 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         let pathExtension = url.pathExtension.lowercased()
         let acceptableExtensions = ["txt", "log", "md", "csv", ""] // "" for no extension
         return acceptableExtensions.contains(pathExtension)
+    }
+}
+
+// MARK: - Extension methods for enum conversion
+extension FileBrowserDialog.FileEncoding {
+    func toDocumentEncoding() -> DocumentEncoding {
+        switch self {
+        case .utf8: return .utf8
+        case .utf8WithBOM: return .utf8WithBOM
+        case .utf16LE: return .utf16LE
+        case .utf16BE: return .utf16BE
+        }
+    }
+}
+
+extension FileBrowserDialog.LineEnding {
+    func toLineEnding() -> LineEnding {
+        switch self {
+        case .crlf: return .crlf
+        case .lf: return .lf
+        case .cr: return .cr
+        }
+    }
+}
+
+extension LineEnding {
+    func toFileBrowserLineEnding() -> FileBrowserDialog.LineEnding {
+        switch self {
+        case .crlf: return .crlf
+        case .lf: return .lf
+        case .cr: return .cr
+        }
     }
 }

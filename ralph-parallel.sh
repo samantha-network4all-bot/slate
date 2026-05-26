@@ -194,6 +194,15 @@ ralph_worker() {
     banner="── worker[$id] iter $iter / $worker_max · $(date '+%F %T') · repo=$worker_repo · timeout=${worker_timeout}s ──"
     echo "$banner"
     echo "$banner" >> "$log_file"
+
+    if [[ ! -f "$prompt_file" ]]; then
+      echo "worker[$id]: PROMPT.md missing at $prompt_file, bailing" >&2
+      return 4
+    fi
+    local prompt_head
+    prompt_head=$(head -n 1 "$prompt_file")
+    echo "worker[$id]: prompt ok ($(wc -l <"$prompt_file" | tr -d ' ') lines) — first line: $prompt_head" | tee -a "$log_file"
+
     rm -f "$status_file"
 
     set +o pipefail
@@ -212,6 +221,16 @@ ralph_worker() {
     set -o pipefail
 
     ln -sfn "$(basename "$raw_log")" "$raw_log_dir/latest.json"
+
+    # Detect LLM connection failures: pi emitted only error stop_reasons and zero tokens.
+    if [[ -s "$raw_log" ]] \
+       && ! grep -q '"stopReason":"end_turn"\|"stopReason": "end_turn"\|"stopReason":"tool_use"\|"stopReason": "tool_use"' "$raw_log" \
+       && grep -q '"errorMessage"' "$raw_log"; then
+      local err_msg
+      err_msg=$(grep -o '"errorMessage":"[^"]*"' "$raw_log" | head -n 1 | sed 's/.*":"//;s/"$//')
+      echo "worker[$id]: iter $iter -> LLM unreachable (${err_msg:-unknown error}), bailing" >&2
+      return 5
+    fi
 
     local status
     status=$(cat "$status_file" 2>/dev/null || echo "missing")

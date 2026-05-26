@@ -455,10 +455,7 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc func showReplace() {
-        let dialog = ReplaceDialog(editor: editorScrollView.editor)
-        window?.makeKeyAndOrderFront(nil)
-        NSApp.runModal(for: dialog.window!)
-        dialog.close()
+        ReplaceDialog.show(editor: editorScrollView.editor)
     }
 
     @objc func showGoToLine() {
@@ -514,7 +511,15 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc func showFontDialog() {
-        // Placeholder for Font dialog (future issue)
+        // Collect all editor views from all open windows
+        var allEditors: [EditorView] = []
+        for wc in DocumentController.shared.windows {
+            if let editor = wc.editorScrollView.editor {
+                allEditors.append(editor)
+            }
+        }
+        let dialog = FontDialog(editorViews: allEditors)
+        dialog.show()
     }
 
     // MARK: - View Menu

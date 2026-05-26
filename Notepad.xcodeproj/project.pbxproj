@@ -15,6 +15,7 @@
 		0D3F1409C27F22F7CD34F99D /* ReplaceDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ABB3147F275B90404C7A5EB /* ReplaceDialog.swift */; };
 		11ADAD7D1DA447CB9CD565FA /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0708751F71CE14CE9A80C8CB /* Colors.swift */; };
 		1DE5C1E786FB5DDBECA301DD /* ZoomController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A317A5416B32A76D70DB52C /* ZoomController.swift */; };
+		24A274C922FD68DA9A22F92A /* ZoomControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03A992C06AECDD62A73CD889 /* ZoomControllerTests.swift */; };
 		26BB54478B8771A6E998BC64 /* FontDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BE543B8164509F34CDE9F0B /* FontDialog.swift */; };
 		2C6C8BB57ED19B9B07071AE6 /* LineEndingDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9ED3CE49A54BAD721FD0E4 /* LineEndingDetector.swift */; };
 		2ED79ED27A2AA6A2166B4529 /* EncodingDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2EB41418D9B69D9C4C78EE8 /* EncodingDetectorTests.swift */; };
@@ -42,6 +43,7 @@
 		AF07B959096C9711577A340B /* GoToLineDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 567911612FB5FBDA85A98E03 /* GoToLineDialog.swift */; };
 		B85985D3E917C7BCA5A14045 /* EncodingDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD3E431AA29C7ABB4AF40A3 /* EncodingDetector.swift */; };
 		BC072CE6B84D1AD79F1B9AFF /* WinScroller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02991DCCD6D82046F44A158B /* WinScroller.swift */; };
+		BC592B87AF94CFD9EABEC82C /* LineColumnTrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61240EE2D6A837C806920CA6 /* LineColumnTrackerTests.swift */; };
 		BE65102110171654E1BE193E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1BD02472A5D54210E42CAC84 /* Assets.xcassets */; };
 		C7B7D17B5ADBE53B54D9A834 /* NotepadWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 381F720DF5F77F5EADA7482C /* NotepadWindow.swift */; };
 		CB9994AAC21CF49608846B06 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180FE80FD420C1A01C90E487 /* DocumentController.swift */; };
@@ -66,6 +68,7 @@
 
 /* Begin PBXFileReference section */
 		02991DCCD6D82046F44A158B /* WinScroller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WinScroller.swift; sourceTree = "<group>"; };
+		03A992C06AECDD62A73CD889 /* ZoomControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomControllerTests.swift; sourceTree = "<group>"; };
 		0708751F71CE14CE9A80C8CB /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
 		0E3C9CA77566A743E883984E /* StatusBarSegment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarSegment.swift; sourceTree = "<group>"; };
 		116FCBF56F6A676EF5FA69C6 /* FileBrowserDialog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileBrowserDialog.swift; sourceTree = "<group>"; };
@@ -86,6 +89,7 @@
 		5898D9F8705F5D455919CED7 /* Notepad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Notepad.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5A317A5416B32A76D70DB52C /* ZoomController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomController.swift; sourceTree = "<group>"; };
 		611D2687452642AD6E8AF197 /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
+		61240EE2D6A837C806920CA6 /* LineColumnTrackerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineColumnTrackerTests.swift; sourceTree = "<group>"; };
 		64E6876D39313ADE04CD7CF0 /* FindEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindEngine.swift; sourceTree = "<group>"; };
 		6ABB3147F275B90404C7A5EB /* ReplaceDialog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplaceDialog.swift; sourceTree = "<group>"; };
 		6AD0ED40C1F53CD2163049FB /* LineColumnTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineColumnTracker.swift; sourceTree = "<group>"; };
@@ -203,7 +207,9 @@
 				B4EB661F2E69995394AD57FF /* DocumentReaderTests.swift */,
 				9382A314B4C16ED2B1DF92AE /* DocumentWriterTests.swift */,
 				D2EB41418D9B69D9C4C78EE8 /* EncodingDetectorTests.swift */,
+				61240EE2D6A837C806920CA6 /* LineColumnTrackerTests.swift */,
 				128953384E9CCD4CD03C758A /* LineEndingDetectorTests.swift */,
+				03A992C06AECDD62A73CD889 /* ZoomControllerTests.swift */,
 			);
 			path = NotepadTests;
 			sourceTree = "<group>";
@@ -355,7 +361,9 @@
 				086CC10298D36F5DD6EC525B /* DocumentReaderTests.swift in Sources */,
 				777E83B55B75B7873CF2CFA3 /* DocumentWriterTests.swift in Sources */,
 				2ED79ED27A2AA6A2166B4529 /* EncodingDetectorTests.swift in Sources */,
+				BC592B87AF94CFD9EABEC82C /* LineColumnTrackerTests.swift in Sources */,
 				4817D0AE5CDABD29E17EB00D /* LineEndingDetectorTests.swift in Sources */,
+				24A274C922FD68DA9A22F92A /* ZoomControllerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

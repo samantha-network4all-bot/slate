@@ -45,6 +45,9 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         setupDirtyTracking()
         setupKeyboardShortcuts()
         layoutAllSubviews()
+        
+        // Apply initial zoom level
+        applyZoomLevel()
     }
 
     private static func defaultFrameStatic() -> NSRect {
@@ -423,19 +426,60 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     // MARK: - View Menu
 
     @objc func zoomIn() {
-        // Placeholder for zoom in (future issue)
+        let newZoom = ZoomController.zoomIn(from: documentState.zoomLevel)
+        if newZoom != documentState.zoomLevel {
+            documentState.zoomLevel = newZoom
+            applyZoomLevel()
+        }
     }
 
     @objc func zoomOut() {
-        // Placeholder for zoom out (future issue)
+        let newZoom = ZoomController.zoomOut(from: documentState.zoomLevel)
+        if newZoom != documentState.zoomLevel {
+            documentState.zoomLevel = newZoom
+            applyZoomLevel()
+        }
     }
 
     @objc func resetZoom() {
-        // Placeholder for reset zoom (future issue)
+        let newZoom = ZoomController.restoreDefault()
+        if newZoom != documentState.zoomLevel {
+            documentState.zoomLevel = newZoom
+            applyZoomLevel()
+        }
     }
 
     @objc func toggleStatusBar() {
-        // Placeholder for status bar toggle (future issue)
+        guard let viewMenuItem = NSApp.mainMenu?.item(withTitle: "View")?.submenu?.item(withTitle: "Status Bar") else {
+            return
+        }
+        
+        let isHidden = statusBarView.isHidden
+        statusBarView.isHidden = !isHidden
+        
+        // Update checkmark in menu
+        if isHidden {
+            viewMenuItem.state = .on
+        } else {
+            viewMenuItem.state = .off
+        }
+        
+        // Relayout to adjust editor size
+        layoutAllSubviews()
+    }
+    
+    private func applyZoomLevel() {
+        // Get the base font size (Menlo 11pt)
+        let baseFontSize: CGFloat = 11
+        let zoomFactor = Double(documentState.zoomLevel) / 100.0
+        let newFontSize = baseFontSize * CGFloat(zoomFactor)
+        
+        // Apply to editor
+        let newFont = NSFont(name: "Menlo", size: newFontSize) ?? Fonts.editorDefault
+        editorScrollView.editor?.font = newFont
+        
+        // Update status bar
+        statusBarView.updateZoom(documentState.zoomLevel)
     }
 
     // MARK: - Save
@@ -499,13 +543,27 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
                 return nil // consume event
             }
             
-                    // F3 and Shift+F3 for find operations
-            if event.keyCode == 0x4F { // F3 key
-                if shiftOnly {
-                    self.findPrevious()
-                } else {
-                    self.findNext()
-                }
+                    if cmdOnly && char == "o" {
+                self.fileOpen()
+                return nil // consume event
+            }
+            
+            // Zoom shortcuts (both Cmd and Ctrl)
+            let cmdOrCtrl = (event.modifierFlags.contains(.command) || event.modifierFlags.contains(.control)) &&
+                           !event.modifierFlags.contains(.shift)
+            
+            if cmdOrCtrl && char == "=" {
+                self.zoomIn()
+                return nil // consume event
+            }
+            
+            if cmdOrCtrl && char == "-" {
+                self.zoomOut()
+                return nil // consume event
+            }
+            
+            if cmdOrCtrl && char == "0" {
+                self.resetZoom()
                 return nil // consume event
             }
             

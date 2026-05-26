@@ -238,7 +238,7 @@ class KeyboardShortcuts {
     }
     
     private static func handleAltAccelerator(_ char: String) {
-        // Map accelerator letters to menu titles
+        // Map accelerator letters to menu titles (case insensitive)
         let menuMap: [String: String] = [
             "f": "File",
             "e": "Edit", 
@@ -247,7 +247,7 @@ class KeyboardShortcuts {
             "h": "Help"
         ]
         
-        if let menuTitle = menuMap[char] {
+        if let menuTitle = menuMap[char.lowercased()] {
             // If a menu is currently open, try to trigger the item directly
             if MenuStateManager.isOpen {
                 triggerMenuItemInOpenMenu(char)
@@ -277,7 +277,7 @@ class KeyboardShortcuts {
         // Find the currently open menu and trigger the matching item
         if let window = NSApplication.shared.keyWindow {
             // Look for any open menu in the window
-            findAndTriggerMenuItem(char, in: window.contentView ?? NSView())
+            findAndTriggerMenuItem(char.lowercased(), in: window.contentView ?? NSView())
         }
     }
     
@@ -297,7 +297,7 @@ class KeyboardShortcuts {
             }
         }
         
-        // Recursively search subviews
+        // Recursively search subviews (for nested menu views)
         for subview in view.subviews {
             findAndTriggerMenuItem(char, in: subview)
         }

@@ -58,7 +58,6 @@ class InWindowMenuBarView: NSView {
     func popUpMenu(for menuItem: InWindowMenuItemView, at point: NSPoint) {
         if let builder = menuBuilders[menuItem.title] {
             let menu = builder()
-            menu.popUp(positioning: nil, at: point, in: menuItem)
             
             // Track that a menu is open
             MenuStateManager.menuOpened()
@@ -67,6 +66,8 @@ class InWindowMenuBarView: NSView {
             NotificationCenter.default.addObserver(forName: NSApplication.didHideNotification, object: menu, queue: .main) { _ in
                 MenuStateManager.menuClosed()
             }
+            
+            menu.popUp(positioning: nil, at: point, in: menuItem)
         }
     }
 

@@ -83,56 +83,61 @@ class MenuBuilder {
 
     static func buildFileMenu() -> NSMenu {
         let menu = NSMenu(title: "File")
-        menu.addItem(NSMenuItem(title: "New", action: #selector(NotepadWindowController.fileNew), keyEquivalent: "n"))
-        menu.addItem(NSMenuItem(title: "Open...", action: #selector(NotepadWindowController.fileOpen), keyEquivalent: "o"))
-        menu.addItem(NSMenuItem(title: "Save", action: #selector(NotepadWindowController.fileSave), keyEquivalent: "s"))
+        let newItem = NSMenuItem(title: "&New", action: #selector(NotepadWindowController.fileNew), keyEquivalent: "n")
+        menu.addItem(newItem)
+        menu.addItem(NSMenuItem(title: "&Open...", action: #selector(NotepadWindowController.fileOpen), keyEquivalent: "o"))
+        menu.addItem(NSMenuItem(title: "&Save", action: #selector(NotepadWindowController.fileSave), keyEquivalent: "s"))
         menu.addItem(NSMenuItem(title: "Save As...", action: #selector(NotepadWindowController.fileSaveAs), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Page Setup...", action: #selector(NotepadWindowController.pageSetup), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Print", action: #selector(NotepadWindowController.filePrint), keyEquivalent: "p"))
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Exit", action: #selector(AppDelegate.quitApp), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "&Exit", action: #selector(AppDelegate.quitApp), keyEquivalent: ""))
         return menu
     }
 
     static func buildEditMenu() -> NSMenu {
         let menu = NSMenu(title: "Edit")
-        menu.addItem(NSMenuItem(title: "Undo", action: #selector(NotepadWindowController.undo), keyEquivalent: "z"))
-        let redoItem = NSMenuItem(title: "Redo", action: #selector(NotepadWindowController.redo), keyEquivalent: "y")
+        let undoItem = NSMenuItem(title: "&Undo", action: #selector(NotepadWindowController.undo), keyEquivalent: "z")
+        menu.addItem(undoItem)
+        let redoItem = NSMenuItem(title: "&Redo", action: #selector(NotepadWindowController.redo), keyEquivalent: "y")
         menu.addItem(redoItem)
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Cut", action: #selector(NotepadWindowController.cut), keyEquivalent: "x"))
-        menu.addItem(NSMenuItem(title: "Copy", action: #selector(NotepadWindowController.copy), keyEquivalent: "c"))
-        menu.addItem(NSMenuItem(title: "Paste", action: #selector(NotepadWindowController.paste), keyEquivalent: "v"))
+        menu.addItem(NSMenuItem(title: "&Cut", action: #selector(NotepadWindowController.cut), keyEquivalent: "x"))
+        menu.addItem(NSMenuItem(title: "&Copy", action: #selector(NotepadWindowController.copy), keyEquivalent: "c"))
+        menu.addItem(NSMenuItem(title: "&Paste", action: #selector(NotepadWindowController.paste), keyEquivalent: "v"))
         let deleteItem = NSMenuItem(title: "Delete", action: #selector(NotepadWindowController.delete), keyEquivalent: "\u{8}")
         deleteItem.keyEquivalentModifierMask = []
         menu.addItem(deleteItem)
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Time/Date", action: #selector(NotepadWindowController.insertTimeDate), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Time/&Date", action: #selector(NotepadWindowController.insertTimeDate), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Find", action: #selector(NotepadWindowController.showFind), keyEquivalent: "f"))
+        menu.addItem(NSMenuItem(title: "&Find", action: #selector(NotepadWindowController.showFind), keyEquivalent: "f"))
         menu.addItem(NSMenuItem(title: "Find Next", action: #selector(NotepadWindowController.findNext), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Find Previous", action: #selector(NotepadWindowController.findPrevious), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Replace", action: #selector(NotepadWindowController.showReplace), keyEquivalent: "h"))
-        menu.addItem(NSMenuItem(title: "Go To Line...", action: #selector(NotepadWindowController.showGoToLine), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "&Replace", action: #selector(NotepadWindowController.showReplace), keyEquivalent: "h"))
+        menu.addItem(NSMenuItem(title: "&Go To Line...", action: #selector(NotepadWindowController.showGoToLine), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Select All", action: #selector(NotepadWindowController.editorSelectAll), keyEquivalent: "a"))
+        menu.addItem(NSMenuItem(title: "&Select All", action: #selector(NotepadWindowController.editorSelectAll), keyEquivalent: "a"))
         return menu
     }
 
     static func buildFormatMenu() -> NSMenu {
         let menu = NSMenu(title: "Format")
-        menu.addItem(NSMenuItem(title: "Word Wrap", action: #selector(NotepadWindowController.toggleWordWrap), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Font...", action: #selector(NotepadWindowController.showFontDialog), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "&Word Wrap", action: #selector(NotepadWindowController.toggleWordWrap), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "&Font...", action: #selector(NotepadWindowController.showFontDialog), keyEquivalent: ""))
         return menu
     }
 
     static func buildViewMenu() -> NSMenu {
         let menu = NSMenu(title: "View")
-        menu.addItem(NSMenuItem(title: "Zoom In", action: #selector(NotepadWindowController.zoomIn), keyEquivalent: "="))
-        menu.addItem(NSMenuItem(title: "Zoom Out", action: #selector(NotepadWindowController.zoomOut), keyEquivalent: "-"))
+        let zoomInItem = NSMenuItem(title: "&Zoom In", action: #selector(NotepadWindowController.zoomIn), keyEquivalent: "=")
+        menu.addItem(zoomInItem)
+        let zoomOutItem = NSMenuItem(title: "&Zoom Out", action: #selector(NotepadWindowController.zoomOut), keyEquivalent: "-")
+        menu.addItem(zoomOutItem)
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Reset Zoom", action: #selector(NotepadWindowController.resetZoom), keyEquivalent: "0"))
+        let resetZoomItem = NSMenuItem(title: "Reset &Zoom", action: #selector(NotepadWindowController.resetZoom), keyEquivalent: "0")
+        menu.addItem(resetZoomItem)
         menu.addItem(NSMenuItem.separator())
         let statusBarItem = NSMenuItem(title: "Status Bar", action: #selector(NotepadWindowController.toggleStatusBar), keyEquivalent: "")
         statusBarItem.state = .on
@@ -142,9 +147,9 @@ class MenuBuilder {
 
     static func buildHelpMenu() -> NSMenu {
         let menu = NSMenu(title: "Help")
-        menu.addItem(NSMenuItem(title: "View Help", action: #selector(NotepadWindowController.showAbout), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "&View Help", action: #selector(NotepadWindowController.showAbout), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Send Feedback", action: #selector(NotepadWindowController.showAbout), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "About Notepad", action: #selector(NotepadWindowController.showAbout), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "&About Notepad", action: #selector(NotepadWindowController.showAbout), keyEquivalent: ""))
         return menu
     }
 }

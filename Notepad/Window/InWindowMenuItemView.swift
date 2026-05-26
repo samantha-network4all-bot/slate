@@ -83,14 +83,31 @@ class InWindowMenuItemView: NSView {
             dirtyRect.fill()
         }
         
-        // Draw title with optional underline
-        titleLabel.attributedStringValue = NSAttributedString(
-            string: title,
+        // Extract display text by removing & prefix if present
+        let displayText = title.replacingOccurrences(of: "&", with: "")
+        
+        // Draw title with optional underline under the accelerator letter
+        var attributedString = NSAttributedString(
+            string: displayText,
             attributes: [
                 .font: Fonts.chrome,
-                .foregroundColor: Colors.chromeText,
-                .underlineStyle: showsAccelerator ? NSUnderlineStyle.single.rawValue : 0
+                .foregroundColor: Colors.chromeText
             ]
         )
+        
+        if showsAccelerator {
+            // Find the accelerator letter position and underline it
+            let range = (displayText as NSString).range(of: accelerator)
+            if range.location != NSNotFound {
+                attributedString = NSMutableAttributedString(attributedString: attributedString)
+                (attributedString as! NSMutableAttributedString).addAttribute(
+                    .underlineStyle,
+                    value: NSUnderlineStyle.single.rawValue,
+                    range: range
+                )
+            }
+        }
+        
+        titleLabel.attributedStringValue = attributedString
     }
 }

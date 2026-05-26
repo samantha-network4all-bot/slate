@@ -13,12 +13,15 @@ class EditorScrollView: NSScrollView {
         // PRD §3: textContainerInset = (4, 4)
         editor.textContainerInset = NSSize(width: 4, height: 4)
 
+        // Use custom WinScroller and always show scrollbars
         hasVerticalScroller = true
         hasHorizontalScroller = true
-        autohidesScrollers = true
+        autohidesScrollers = false  // Always visible
+        verticalScroller = WinScroller(frame: NSRect(x: 0, y: 0, width: Metrics.scrollbarThickness, height: frame.height))
+        horizontalScroller = WinScroller(frame: NSRect(x: 0, y: 0, width: frame.width, height: Metrics.scrollbarThickness))
+        
         borderType = .noBorder
         backgroundColor = Colors.editorBg
-
     }
 
     required init?(coder: NSCoder) {

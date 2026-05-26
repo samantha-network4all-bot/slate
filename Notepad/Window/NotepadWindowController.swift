@@ -484,7 +484,7 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
 
     // MARK: - Save
 
-    @objc private func save(_ sender: Any?) {
+    @objc func save(_ sender: Any?) {
         if let url = documentState.url {
             saveTo(url)
         } else {
@@ -520,60 +520,90 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     // MARK: - Keyboard Shortcuts
 
     private func setupKeyboardShortcuts() {
-        shortcutMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event -> NSEvent? in
-            guard let self = self else { return event }
-            let cmdOnly = event.modifierFlags.contains(.command) &&
-                          !event.modifierFlags.contains(.shift) &&
-                          !event.modifierFlags.contains(.control)
-            let shiftOnly = event.modifierFlags.contains(.shift) &&
-                           !event.modifierFlags.contains(.command) &&
-                           !event.modifierFlags.contains(.control)
-            let char = event.characters?.lowercased()
-            
-            if cmdOnly && char == "n" {
-                self.fileNew()
-                return nil // consume event
-            }
-            if cmdOnly && char == "s" {
-                self.save(nil)
-                return nil // consume event
-            }
-            if cmdOnly && char == "o" {
-                self.fileOpen()
-                return nil // consume event
-            }
-            
-                    if cmdOnly && char == "o" {
-                self.fileOpen()
-                return nil // consume event
-            }
-            
-            // Zoom shortcuts (both Cmd and Ctrl)
-            let cmdOrCtrl = (event.modifierFlags.contains(.command) || event.modifierFlags.contains(.control)) &&
-                           !event.modifierFlags.contains(.shift)
-            
-            if cmdOrCtrl && char == "=" {
-                self.zoomIn()
-                return nil // consume event
-            }
-            
-            if cmdOrCtrl && char == "-" {
-                self.zoomOut()
-                return nil // consume event
-            }
-            
-            if cmdOrCtrl && char == "0" {
-                self.resetZoom()
-                return nil // consume event
-            }
-            
-            // F5 for Time/Date insertion
-            if event.keyCode == 0x3E { // F5 key
-                self.insertTimeDate()
-                return nil // consume event
-            }
-            
-            return event
+        // Keyboard shortcuts are now handled globally by KeyboardShortcuts class
+        // Just observe notifications and respond accordingly
+        NotificationCenter.default.addObserver(forName: .newWindowShortcut, object: nil, queue: .main) { _ in
+            self.fileNew()
+        }
+        
+        NotificationCenter.default.addObserver(forName: .openShortcut, object: nil, queue: .main) { _ in
+            self.fileOpen()
+        }
+        
+        NotificationCenter.default.addObserver(forName: .saveShortcut, object: nil, queue: .main) { _ in
+            self.save(nil)
+        }
+        
+        NotificationCenter.default.addObserver(forName: .saveAsShortcut, object: nil, queue: .main) { _ in
+            self.fileSaveAs()
+        }
+        
+        NotificationCenter.default.addObserver(forName: .printShortcut, object: nil, queue: .main) { _ in
+            self.filePrint()
+        }
+        
+        NotificationCenter.default.addObserver(forName: .undoShortcut, object: nil, queue: .main) { _ in
+            self.undo(nil)
+        }
+        
+        NotificationCenter.default.addObserver(forName: .redoShortcut, object: nil, queue: .main) { _ in
+            self.redo(nil)
+        }
+        
+        NotificationCenter.default.addObserver(forName: .cutShortcut, object: nil, queue: .main) { _ in
+            self.cut(nil)
+        }
+        
+        NotificationCenter.default.addObserver(forName: .copyShortcut, object: nil, queue: .main) { _ in
+            self.copy(nil)
+        }
+        
+        NotificationCenter.default.addObserver(forName: .pasteShortcut, object: nil, queue: .main) { _ in
+            self.paste(nil)
+        }
+        
+        NotificationCenter.default.addObserver(forName: .deleteShortcut, object: nil, queue: .main) { _ in
+            self.delete(nil)
+        }
+        
+        NotificationCenter.default.addObserver(forName: .selectAllShortcut, object: nil, queue: .main) { _ in
+            self.editorSelectAll()
+        }
+        
+        NotificationCenter.default.addObserver(forName: .findShortcut, object: nil, queue: .main) { _ in
+            self.showFind()
+        }
+        
+        NotificationCenter.default.addObserver(forName: .findNextShortcut, object: nil, queue: .main) { _ in
+            self.findNext()
+        }
+        
+        NotificationCenter.default.addObserver(forName: .findPreviousShortcut, object: nil, queue: .main) { _ in
+            self.findPrevious()
+        }
+        
+        NotificationCenter.default.addObserver(forName: .replaceShortcut, object: nil, queue: .main) { _ in
+            self.showReplace()
+        }
+        
+        NotificationCenter.default.addObserver(forName: .goToShortcut, object: nil, queue: .main) { _ in
+            self.showGoToLine()
+        }
+        
+        NotificationCenter.default.addObserver(forName: .zoomInShortcut, object: nil, queue: .main) { _ in
+            self.zoomIn()
+        }
+        
+        NotificationCenter.default.addObserver(forName: .zoomOutShortcut, object: nil, queue: .main) { _ in
+            self.zoomOut()
+        }
+        
+        NotificationCenter.default.addObserver(forName: .resetZoomShortcut, object: nil, queue: .main) { _ in
+            self.resetZoom()
+        }
+        
+        NotificationCenter.default.addObserver(forName: .timeDateShortcut, object: nil, queue: .main) { _ in
+            self.insertTimeDate()
         }
     }
 

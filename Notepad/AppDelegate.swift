@@ -231,6 +231,69 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return true
     }
+    
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        let dirtyWindows = DocumentController.shared.windows.filter { $0.documentState.isDirty }
+        
+        if dirtyWindows.isEmpty {
+            // No dirty windows, quit immediately
+            return .terminateNow
+        }
+        
+        // Use a simple class to manage the state
+        let terminator = DirtyWindowTerminator(dirtyWindows: dirtyWindows)
+        terminator.start()
+        
+        return .terminateLater
+    }
+    
+    // Helper class to manage dirty window termination state
+    private class DirtyWindowTerminator: NSObject {
+        private var dirtyWindows: [NotepadWindowController]
+        private var shouldContinue: Bool = true
+        
+        init(dirtyWindows: [NotepadWindowController]) {
+            self.dirtyWindows = dirtyWindows
+            super.init()
+        }
+        
+        func start() {
+            processNextDirtyWindow()
+        }
+        
+        private func processNextDirtyWindow() {
+            guard shouldContinue, let currentWindow = dirtyWindows.first else {
+                // All dirty windows processed, terminate
+                NSApplication.shared.terminate(nil)
+                return
+            }
+            
+            dirtyWindows.removeFirst()
+            
+            // Show save changes prompt for this window as a sheet
+            let prompt = SaveChangesPrompt(displayName: currentWindow.displayNameFromDocumentState())
+            prompt.onSave = { [weak self] in
+                currentWindow.handleSaveThenClose(currentWindow.window!)
+                self?.processNextDirtyWindow()
+            }
+            prompt.onDontSave = { [weak self] in
+                currentWindow.documentState.isDirty = false
+                self?.processNextDirtyWindow()
+            }
+            prompt.onCancel = { [self] in
+                // User cancelled, don't quit
+                shouldContinue = false
+            }
+            
+            // Show as a sheet attached to this window
+            prompt.showAsSheet(on: currentWindow.window!) { [self] response in
+                // The sheet has ended, continue processing if user didn't cancel
+                if response == .cancel {
+                    shouldContinue = false
+                }
+            }
+        }
+    }
 
     @objc func showAbout() {
         // Open About dialog on the frontmost window

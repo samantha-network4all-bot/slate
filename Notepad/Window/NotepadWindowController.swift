@@ -714,26 +714,63 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         if documentState.isDirty {
-            // Show save changes prompt
-            let prompt = SaveChangesPrompt()
+            // Show save changes prompt as a sheet
+            let prompt = SaveChangesPrompt(displayName: displayNameFromDocumentState())
             prompt.onSave = { [weak self] in
-                self?.save(nil)
-                sender.close()
+                self?.handleSaveThenClose(sender)
             }
             prompt.onDontSave = { [weak self] in
                 self?.documentState.isDirty = false
                 sender.close()
             }
-            prompt.onCancel = {
+            prompt.onCancel = { [weak self] in
                 // Do nothing, keep window open
             }
             
-            window?.makeKeyAndOrderFront(nil)
-            NSApplication.shared.runModal(for: prompt.window!)
-            prompt.close()
+            // Show as a sheet attached to this window
+            prompt.showAsSheet(on: sender) { response in
+                // The sheet has ended, cleanup is handled by the prompt callbacks
+            }
             return false // Don't close the window yet
         }
         return true // Can close immediately
+    }
+    
+    func displayNameFromDocumentState() -> String {
+        if documentState.url == nil {
+            return "Untitled"
+        } else {
+            // Extract just the filename from the full path for the prompt
+            let lastPathComponent = documentState.url!.lastPathComponent
+            return lastPathComponent
+        }
+    }
+    
+    func handleSaveThenClose(_ window: NSWindow) {
+        if documentState.url == nil {
+            // Untitled document - show Save As
+            presentSaveAsForUntitled(window: window)
+        } else {
+            // Saved document - just save and close
+            save(nil)
+            window.close()
+        }
+    }
+    
+    func presentSaveAsForUntitled(window: NSWindow) {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "Untitled"
+        panel.allowedContentTypes = [.item]
+        panel.isExtensionHidden = false
+        panel.allowsOtherFileTypes = true
+        
+        let result = panel.runModal()
+        if result == .OK, let url = panel.url {
+            documentState.url = url
+            save(nil)
+            // Save successful, window will be closed by the save completion
+        }
+        // If cancelled, the window remains open - no action needed
     }
     
     func windowWillClose(_ notification: Notification) {

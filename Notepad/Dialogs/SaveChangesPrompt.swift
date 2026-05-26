@@ -5,8 +5,10 @@ class SaveChangesPrompt: NSWindowController {
     var onSave: (() -> Void)?
     var onCancel: (() -> Void)?
     var onDontSave: (() -> Void)?
+    private let displayName: String
     
-    init() {
+    init(displayName: String) {
+        self.displayName = displayName
         let window = DialogWindow(
             contentRect: NSRect(x: 0, y: 0, width: 420, height: 130),
             styleMask: [.borderless],
@@ -17,7 +19,7 @@ class SaveChangesPrompt: NSWindowController {
         window.isOpaque = true
         window.backgroundColor = Colors.chromeBackground
         window.hasShadow = true
-        window.collectionBehavior = [.fullScreenAuxiliary]
+        window.collectionBehavior = [.fullScreenAuxiliary, .canJoinAllSpaces]
         window.isMovableByWindowBackground = true
         super.init(window: window)
         
@@ -45,7 +47,7 @@ class SaveChangesPrompt: NSWindowController {
         let contentHeight: CGFloat = 98
         
         // Message label
-        let message = NSTextField(labelWithString: "Do you want to save changes to Untitled?")
+        let message = NSTextField(labelWithString: "Do you want to save changes to \(displayName)?")
         message.font = Fonts.dialogLabel
         message.textColor = Colors.chromeText
         message.alignment = .center
@@ -145,13 +147,28 @@ class SaveChangesPrompt: NSWindowController {
             return event
         }
         
-        // Center on screen
+                // Center on screen
         window.center()
+    }
+    
+    // Convenience method to show as a sheet attached to a parent window
+    func showAsSheet(on parentWindow: NSWindow, completionHandler: @escaping (NSApplication.ModalResponse) -> Void) {
+        guard let promptWindow = window else {
+            completionHandler(.cancel)
+            return
+        }
+        parentWindow.beginSheet(promptWindow, completionHandler: completionHandler)
     }
     
     @objc private func saveClicked(_ sender: Any) {
         onSave?()
         window?.close()
+    }
+    
+    deinit {
+        if let monitor = monitor {
+            NSEvent.removeMonitor(monitor)
+        }
     }
     
     @objc private func dontSaveClicked(_ sender: Any) {

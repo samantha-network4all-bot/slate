@@ -26,6 +26,8 @@ class ReplacementAlert: NSWindowController {
         label.focusRingType = .none
         window.contentView?.addSubview(label)
 
+        super.init(window: window)
+
         // OK button
         let okButton = NSButton(frame: NSRect(x: 103, y: 8, width: 75, height: 23))
         okButton.title = "OK"
@@ -38,8 +40,6 @@ class ReplacementAlert: NSWindowController {
         okButton.target = self
         okButton.action = #selector(okClicked)
         window.contentView?.addSubview(okButton)
-
-        super.init(window: window)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }

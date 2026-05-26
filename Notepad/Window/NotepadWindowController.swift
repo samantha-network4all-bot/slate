@@ -518,7 +518,7 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
                 allEditors.append(editor)
             }
         }
-        let dialog = FontDialog(editorViews: allEditors)
+        let dialog = FontDialog(editors: allEditors)
         dialog.show()
     }
 

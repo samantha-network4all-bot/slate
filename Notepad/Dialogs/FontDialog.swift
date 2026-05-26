@@ -10,7 +10,7 @@ protocol TableDataSource {
 
 // MARK: - Font Dialog
 
-class FontDialog: NSWindowController, NSTextFieldDelegate {
+class FontDialog: NSWindowController, NSTextFieldDelegate, NSTableViewDataSource, NSTableViewDelegate {
     
     // MARK: - State
     private var allFamilies: [String] = []
@@ -244,8 +244,8 @@ class FontDialog: NSWindowController, NSTextFieldDelegate {
     }
     
     private func makeTableView() -> NSTableView {
-        let tv = NSTableView(frame: .zero, style: .plain)
-        tv.usesAutomaticRowHeight = false
+        let tv = NSTableView(frame: .zero)
+        tv.rowHeight = 20
         tv.allowsMultipleSelection = false
         return tv
     }
@@ -305,7 +305,7 @@ class FontDialog: NSWindowController, NSTextFieldDelegate {
     
     private func buildStylesForFamily(_ family: String) -> [String] {
         var styles: [String] = ["Regular"]
-        let mgr = NSFontManager.shared
+        _ = NSFontManager.shared
         
         // We check if a bold variant exists by looking for a font name that differs
         let regularDesc = NSFontDescriptor(fontAttributes: [.name: family, .size: 12.0])
@@ -334,7 +334,7 @@ class FontDialog: NSWindowController, NSTextFieldDelegate {
     }
     
     private func fontForSelection() -> NSFont {
-        let baseDesc = NSFontDescriptor(name: NSFontDescriptor.Name(currentFamily), size: CGFloat(currentSize))
+        let baseDesc = NSFontDescriptor(name: currentFamily, size: CGFloat(currentSize))
         var traits: NSFontDescriptor.SymbolicTraits = []
         switch currentStyle {
         case "Bold": traits.insert(.bold)
@@ -396,6 +396,36 @@ class FontDialog: NSWindowController, NSTextFieldDelegate {
     }
     
     nonisolated func tableView(_ tableView: NSTableView, numberOfRowsIn section: Int) -> Int {
+        let colId = tableView.tableColumns.first?.identifier.rawValue ?? ""
+        switch colId {
+        case "family":
+            return allFamilies.count
+        case "style":
+            return familyStyles.count
+        case "size":
+            return fontSizes.count
+        default:
+            return 0
+        }
+    }
+    
+    // MARK: - NSTableViewDataSource
+    
+    func tableView(_ tableView: NSTableView, objectValueFor tableColumn: NSTableColumn?, row: Int) -> Any? {
+        guard let colId = tableColumn?.identifier.rawValue else { return "" }
+        switch colId {
+        case "family":
+            return allFamilies[row]
+        case "style":
+            return familyStyles[row]
+        case "size":
+            return String(fontSizes[row])
+        default:
+            return ""
+        }
+    }
+    
+    func numberOfRows(in tableView: NSTableView) -> Int {
         let colId = tableView.tableColumns.first?.identifier.rawValue ?? ""
         switch colId {
         case "family":

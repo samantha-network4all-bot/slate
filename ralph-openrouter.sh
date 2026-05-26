@@ -5,7 +5,10 @@
 # commits, pushes, and closes it. Stops when no eligible issue remains.
 #
 # Usage:
-#   ./ralph-openrouter.sh [MAX_ITERATIONS]
+#   ./ralph-openrouter.sh [-s] [MAX_ITERATIONS]
+#
+# Flags:
+#   -s  Interactively pick a free OpenRouter model before starting the loop.
 #
 # Env:
 #   PI_ARGS              extra args passed to `pi` (e.g. "--thinking high")
@@ -18,6 +21,20 @@
 
 set -euo pipefail
 
+SELECT_MODEL=0
+while getopts ":sh" opt; do
+  case "$opt" in
+    s) SELECT_MODEL=1 ;;
+    h)
+      echo "Usage: $0 [-s] [MAX_ITERATIONS]"
+      echo "  -s  Pick a free OpenRouter model interactively before starting."
+      exit 0
+      ;;
+    \?) echo "Unknown flag -$OPTARG" >&2; exit 2 ;;
+  esac
+done
+shift $((OPTIND - 1))
+
 readonly REPO="${RALPH_REPO:-samantha-network4all-bot/slate}"
 readonly MAX="${1:-9999}"
 readonly ITER_TIMEOUT="${RALPH_ITER_TIMEOUT:-7200}"
@@ -28,7 +45,61 @@ readonly RAW_LOG_DIR=".ralph-logs"          # per-iteration raw pi json
 readonly FORMATTER="./ralph-format.sh"
 
 # OpenRouter defaults
-readonly DEFAULT_MODEL="${RALPH_MODEL:-openrouter/free}"
+DEFAULT_MODEL="${RALPH_MODEL:-openrouter/free}"
+
+# ---------- free model picker (-s) ----------
+
+pick_free_model() {
+  echo "ralph: fetching free OpenRouter models..." >&2
+  local json
+  json=$(curl -fsS https://openrouter.ai/api/v1/models) || {
+    echo "ralph: failed to fetch OpenRouter model list" >&2
+    return 1
+  }
+
+  # Free = prompt price and completion price both "0" (strings in the API).
+  local -a ids names ctxs
+  while IFS=$'\t' read -r id name ctx; do
+    ids+=("$id")
+    names+=("$name")
+    ctxs+=("$ctx")
+  done < <(echo "$json" | jq -r '
+    .data
+    | map(select((.pricing.prompt == "0") and (.pricing.completion == "0")))
+    | sort_by(-(.context_length // 0))
+    | .[] | [.id, .name, (.context_length // 0)] | @tsv')
+
+  local count=${#ids[@]}
+  if (( count == 0 )); then
+    echo "ralph: no free models returned from OpenRouter" >&2
+    return 1
+  fi
+
+  echo "" >&2
+  echo "Free OpenRouter models ($count):" >&2
+  local i
+  for ((i = 0; i < count; i++)); do
+    printf "  [%2d] %-60s ctx=%s\n" "$((i + 1))" "${ids[i]}" "${ctxs[i]}" >&2
+  done
+
+  local choice=""
+  while :; do
+    printf "Select model [1-%d] (default 1): " "$count" >&2
+    read -r choice </dev/tty || { echo "" >&2; return 1; }
+    choice="${choice:-1}"
+    if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= count )); then
+      break
+    fi
+    echo "ralph: invalid selection '$choice'" >&2
+  done
+
+  DEFAULT_MODEL="${ids[$((choice - 1))]}"
+  echo "ralph: using model $DEFAULT_MODEL" >&2
+}
+
+if (( SELECT_MODEL == 1 )); then
+  pick_free_model || exit 2
+fi
 
 # ---------- preflight ----------
 
@@ -40,6 +111,7 @@ command -v pi >/dev/null   || { echo "ralph: 'pi' not on PATH" >&2; exit 2; }
 command -v gh >/dev/null   || { echo "ralph: 'gh' not on PATH" >&2; exit 2; }
 command -v git >/dev/null  || { echo "ralph: 'git' not on PATH" >&2; exit 2; }
 command -v jq >/dev/null   || { echo "ralph: 'jq' not on PATH (brew install jq)" >&2; exit 2; }
+command -v curl >/dev/null || { echo "ralph: 'curl' not on PATH" >&2; exit 2; }
 [[ -x "$FORMATTER" ]]      || { echo "ralph: $FORMATTER not executable" >&2; exit 2; }
 mkdir -p "$RAW_LOG_DIR"
 

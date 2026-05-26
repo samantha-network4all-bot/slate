@@ -10,26 +10,28 @@ class LineColumnTracker {
         var line = 1
         var col = 1
         var i = 0
+        
         while i < min(caretOffset, characters.count) {
             if characters[i] == "\r" {
                 // Check if this is part of a CRLF sequence
                 if i + 1 < characters.count && characters[i + 1] == "\n" {
-                    // CRLF counts as one line break
-                    line += 1
-                    col = 1
-                    // Skip the \n in the next iteration
-                    i += 1
+                    // CRLF: \r is part of current line, \n causes line break
+                    col += 1  // Count the \r as part of current line
+                    i += 1    // Skip the \r
+                    // Now process the \n
                 } else {
-                    // Standalone CR
-                    line += 1
-                    col = 1
+                    // Standalone CR: causes line break
+                    col += 1  // Count the \r as part of current line
+                    line += 1 // Line break
+                    col = 1   // Reset column for new line
                 }
             } else if characters[i] == "\n" {
-                // Standalone LF
-                line += 1
-                col = 1
+                // Standalone LF: causes line break
+                col += 1  // Count the \n as part of current line
+                line += 1 // Line break
+                col = 1   // Reset column for new line
             } else {
-                col += 1
+                col += 1 // Regular character
             }
             i += 1
         }

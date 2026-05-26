@@ -423,6 +423,10 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
                           !event.modifierFlags.contains(.shift) &&
                           !event.modifierFlags.contains(.control)
             let char = event.characters?.lowercased()
+            if cmdOnly && char == "n" {
+                self.fileNew()
+                return nil // consume event
+            }
             if cmdOnly && char == "s" {
                 self.save(nil)
                 return nil // consume event

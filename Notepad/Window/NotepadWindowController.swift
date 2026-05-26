@@ -48,6 +48,10 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         
         // Apply initial zoom level
         applyZoomLevel()
+        
+        // Apply initial word wrap state
+        applyWordWrap()
+        updateWordWrapMenuState()
     }
 
     private static func defaultFrameStatic() -> NSRect {
@@ -416,7 +420,48 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     // MARK: - Format Menu
 
     @objc func toggleWordWrap() {
-        // Placeholder for word wrap toggle (future issue)
+        // Toggle word wrap state
+        documentState.isWordWrapEnabled = !documentState.isWordWrapEnabled
+        
+        // Apply word wrap setting to editor
+        applyWordWrap()
+        
+        // Update menu item checkmark
+        updateWordWrapMenuState()
+        
+        // Mark document as dirty (word wrap setting is part of document state)
+        documentState.isDirty = true
+        updateWindowTitle()
+    }
+    
+    private func applyWordWrap() {
+        guard let textContainer = editorScrollView.editor?.textContainer else { return }
+        
+        if documentState.isWordWrapEnabled {
+            // Word wrap ON: track text view width, hide horizontal scrollbar
+            textContainer.widthTracksTextView = true
+            textContainer.maximumNumberOfLines = 0  // No limit on lines
+            editorScrollView.hasHorizontalScroller = false
+        } else {
+            // Word wrap OFF: don't track text view width, show horizontal scrollbar
+            textContainer.widthTracksTextView = false
+            textContainer.maximumNumberOfLines = 0  // No limit on lines
+            editorScrollView.hasHorizontalScroller = true
+        }
+        
+        // Force the editor to update its layout
+        editorScrollView.editor?.needsDisplay = true
+    }
+    
+    private func updateWordWrapMenuState() {
+        // Update macOS top menu bar (both menus are synchronized via MenuBuilder)
+        if let topMenu = NSApp.mainMenu {
+            if let formatMenuItem = topMenu.item(withTitle: "Format")?.submenu {
+                if let wordWrapItem = formatMenuItem.item(withTitle: "Word Wrap") {
+                    wordWrapItem.state = documentState.isWordWrapEnabled ? .on : .off
+                }
+            }
+        }
     }
 
     @objc func showFontDialog() {

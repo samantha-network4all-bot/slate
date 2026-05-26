@@ -21,6 +21,7 @@ class DocumentState {
     var lineEnding: LineEnding = .crlf
     var isDirty: Bool = false
     var zoomLevel: Int = 100
+    var isWordWrapEnabled: Bool = false  // Default: off per PRD §5.9
 
     var title: String {
         let displayName: String

@@ -393,7 +393,8 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc func showGoToLine() {
-        // Placeholder for Go To Line dialog (future issue)
+        let dialog = GoToLineDialog(editor: editorScrollView?.editor)
+        dialog.show()
     }
 
     // MARK: - Format Menu

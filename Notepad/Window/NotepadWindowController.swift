@@ -529,6 +529,30 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         layoutAllSubviews()
     }
 
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        if documentState.isDirty {
+            // Show save changes prompt
+            let prompt = SaveChangesPrompt()
+            prompt.onSave = { [weak self] in
+                self?.save(nil)
+                sender.close()
+            }
+            prompt.onDontSave = { [weak self] in
+                self?.documentState.isDirty = false
+                sender.close()
+            }
+            prompt.onCancel = {
+                // Do nothing, keep window open
+            }
+            
+            window?.makeKeyAndOrderFront(nil)
+            NSApplication.shared.runModal(for: prompt.window!)
+            prompt.close()
+            return false // Don't close the window yet
+        }
+        return true // Can close immediately
+    }
+    
     func windowWillClose(_ notification: Notification) {
         // Save window frame for restoration on next launch.
         if let frame = window?.frame {

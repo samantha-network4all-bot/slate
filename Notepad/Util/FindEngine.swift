@@ -20,13 +20,13 @@ struct FindEngine {
     ) -> NSRange? {
         guard !needle.isEmpty else { return nil }
         
-        let searchRange: NSRange
         let searchStart: Int
+        let searchRange: NSRange
         
         switch options.direction {
         case .forward:
             searchStart = cursorPosition
-            if searchRange.location >= text.count {
+            if searchStart >= text.count {
                 if options.wrapAround {
                     searchRange = NSRange(location: 0, length: text.count)
                 } else {
@@ -37,7 +37,7 @@ struct FindEngine {
             }
         case .backward:
             searchStart = max(0, cursorPosition - needle.count)
-            if searchRange.location < 0 {
+            if searchStart < 0 {
                 if options.wrapAround {
                     searchRange = NSRange(location: text.count - needle.count, length: needle.count)
                 } else {

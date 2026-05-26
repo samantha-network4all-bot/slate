@@ -375,7 +375,52 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc func filePrint() {
-        // Placeholder for print functionality (future issue)
+        let printInfo = NSPrintInfo.shared
+        
+        // Load Page Setup values
+        let defaults = UserDefaults.standard
+        let paperSize = defaults.string(forKey: "pageSetup.paperSize") ?? "Letter"
+        let orientation = defaults.string(forKey: "pageSetup.orientation") ?? "Portrait"
+        let leftMargin = defaults.double(forKey: "pageSetup.leftMargin")
+        let rightMargin = defaults.double(forKey: "pageSetup.rightMargin")
+        let topMargin = defaults.double(forKey: "pageSetup.topMargin")
+        let bottomMargin = defaults.double(forKey: "pageSetup.bottomMargin")
+        
+        // Apply paper size
+        switch paperSize {
+        case "Letter":
+            printInfo.horizontalPagination = .fit
+            printInfo.verticalPagination = .automatic
+        case "A4":
+            printInfo.horizontalPagination = .fit
+            printInfo.verticalPagination = .automatic
+        case "Legal":
+            printInfo.horizontalPagination = .fit
+            printInfo.verticalPagination = .automatic
+        default:
+            printInfo.horizontalPagination = .fit
+            printInfo.verticalPagination = .automatic
+        }
+        
+        // Apply orientation
+        if orientation == "Landscape" {
+            printInfo.orientation = .landscape
+        } else {
+            printInfo.orientation = .portrait
+        }
+        
+        // Apply margins (convert from millimeters to points)
+        let marginPoints: Double = 72.0 / 25.4 // mm to points conversion
+        printInfo.horizontalPagination = .fit
+        printInfo.verticalPagination = .automatic
+        
+        // Create print operation
+        let printOperation = NSPrintOperation(view: editorScrollView, printInfo: printInfo)
+        printOperation.showsPrintPanel = true
+        printOperation.showsProgressPanel = true
+        
+        // Run the print operation
+        printOperation.run()
     }
 
     // MARK: - Edit Menu

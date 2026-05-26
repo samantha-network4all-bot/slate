@@ -14,6 +14,7 @@ class KeyboardShortcuts {
         let hasCmd = event.modifierFlags.contains(.command)
         let hasCtrl = event.modifierFlags.contains(.control)
         let hasShift = event.modifierFlags.contains(.shift)
+        let hasOption = event.modifierFlags.contains(.option)
         
         // Accept both ⌘ and Ctrl as modifier keys
         let hasCmdOrCtrl = hasCmd || hasCtrl
@@ -100,6 +101,14 @@ class KeyboardShortcuts {
         if event.keyCode == 0x3E { // F5 key
             handleInsertTimeDate()
             return
+        }
+        
+        // Option+letter for menu accelerators
+        if hasOption && !hasCmd && !hasCtrl {
+            if let char = char {
+                handleAltAccelerator(char)
+                return
+            }
         }
         
         // F3 and Shift+F3 for Find Next/Previous (no modifier)
@@ -227,7 +236,101 @@ class KeyboardShortcuts {
     private static func handleInsertTimeDate() {
         NotificationCenter.default.post(name: .timeDateShortcut, object: nil)
     }
+    
+    private static func handleAltAccelerator(_ char: String) {
+        // Map accelerator letters to menu titles
+        let menuMap: [String: String] = [
+            "f": "File",
+            "e": "Edit", 
+            "o": "Format",
+            "v": "View",
+            "h": "Help"
+        ]
+        
+        if let menuTitle = menuMap[char] {
+            // If a menu is currently open, try to trigger the item directly
+            if MenuStateManager.isOpen {
+                triggerMenuItemInOpenMenu(char)
+            } else {
+                // Otherwise, open the corresponding menu
+                openMenuByTitle(menuTitle)
+            }
+        }
+    }
+    
+    private static func openMenuByTitle(_ title: String) {
+        if let window = NSApplication.shared.keyWindow,
+           let contentView = window.contentView,
+           let menuBarView = findInWindowMenuBarView(in: contentView) {
+            // Find the corresponding menu item
+            for menuItem in menuBarView.menuItems {
+                if menuItem.title == title {
+                    let point = NSPoint(x: menuItem.frame.minX, y: menuItem.frame.minY)
+                    menuBarView.popUpMenu(for: menuItem, at: point)
+                    return
+                }
+            }
+        }
+    }
+    
+    private static func triggerMenuItemInOpenMenu(_ char: String) {
+        // Find the currently open menu and trigger the matching item
+        if let window = NSApplication.shared.keyWindow {
+            // Look for any open menu in the window
+            findAndTriggerMenuItem(char, in: window.contentView ?? NSView())
+        }
+    }
+    
+    private static func findAndTriggerMenuItem(_ char: String, in view: NSView) {
+        // Check if this view is a menu and has items
+        if let menu = view as? NSMenu {
+            for menuItem in menu.items {
+                let keyEquivalent = menuItem.keyEquivalent
+                if !keyEquivalent.isEmpty,
+                   keyEquivalent.lowercased() == char,
+                   menuItem.isEnabled {
+                    if let action = menuItem.action {
+                        _ = menuItem.target?.perform(action, with: menuItem)
+                        return
+                    }
+                }
+            }
+        }
+        
+        // Recursively search subviews
+        for subview in view.subviews {
+            findAndTriggerMenuItem(char, in: subview)
+        }
+    }
+    
+    private static func findInWindowMenuBarView(in view: NSView) -> InWindowMenuBarView? {
+        if let menuBarView = view as? InWindowMenuBarView {
+            return menuBarView
+        }
+        for subview in view.subviews {
+            if let result = findInWindowMenuBarView(in: subview) {
+                return result
+            }
+        }
+        return nil
+    }
 }
+
+// MARK: - Menu State Manager
+
+class MenuStateManager {
+    static var isOpen: Bool = false
+    
+    static func menuOpened() {
+        isOpen = true
+    }
+    
+    static func menuClosed() {
+        isOpen = false
+    }
+}
+
+
 
 // MARK: - Notification Names
 extension Notification.Name {

@@ -161,6 +161,20 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
             x: 0, y: 0,
             width: window.frame.width, height: h
         ))
+        
+        // Set up click handlers for status bar segments
+        statusBar.onZoomClick = { [weak self] in
+            self?.showZoomPopup()
+        }
+        
+        statusBar.onEOLClick = { [weak self] in
+            self?.showEOLPopup()
+        }
+        
+        statusBar.onEncodingClick = { [weak self] in
+            self?.showEncodingPopup()
+        }
+        
         window.contentView?.addSubview(statusBar)
         statusBarView = statusBar
     }
@@ -692,5 +706,94 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
             Self.saveFrame(frame)
         }
         DocumentController.shared.closeWindow(self)
+    }
+    
+    // MARK: - Status Bar Popup Menus
+    
+    private func showZoomPopup() {
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Zoom In (⌘+)", action: #selector(zoomIn), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Zoom Out (⌮-)", action: #selector(zoomOut), keyEquivalent: ""))
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(NSMenuItem(title: "Restore Default Zoom (⌮0)", action: #selector(resetZoom), keyEquivalent: ""))
+        
+        if let window = window {
+            let segmentFrame = statusBarView.convert(statusBarView.getZoomSegmentFrame(), to: nil)
+            menu.popUp(positioning: nil, at: NSPoint(x: segmentFrame.midX, y: segmentFrame.maxY), in: nil)
+        }
+    }
+    
+    private func showEOLPopup() {
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Windows (CRLF)", action: #selector(selectCRLF), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Unix (LF)", action: #selector(selectLF), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Macintosh (CR)", action: #selector(selectCR), keyEquivalent: ""))
+        
+        if let window = window {
+            let segmentFrame = statusBarView.convert(statusBarView.getEOLEgmentFrame(), to: nil)
+            menu.popUp(positioning: nil, at: NSPoint(x: segmentFrame.midX, y: segmentFrame.maxY), in: nil)
+        }
+    }
+    
+    private func showEncodingPopup() {
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "UTF-8", action: #selector(selectUTF8), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "UTF-8 with BOM", action: #selector(selectUTF8WithBOM), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "UTF-16 LE", action: #selector(selectUTF16LE), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "UTF-16 BE", action: #selector(selectUTF16BE), keyEquivalent: ""))
+        
+        if let window = window {
+            let segmentFrame = statusBarView.convert(statusBarView.getEncodingSegmentFrame(), to: nil)
+            menu.popUp(positioning: nil, at: NSPoint(x: segmentFrame.midX, y: segmentFrame.maxY), in: nil)
+        }
+    }
+    
+    @objc private func selectCRLF() {
+        documentState.lineEnding = .crlf
+        statusBarView.updateEOL("Windows (CRLF)")
+        documentState.isDirty = true
+        updateWindowTitle()
+    }
+    
+    @objc private func selectLF() {
+        documentState.lineEnding = .lf
+        statusBarView.updateEOL("Unix (LF)")
+        documentState.isDirty = true
+        updateWindowTitle()
+    }
+    
+    @objc private func selectCR() {
+        documentState.lineEnding = .cr
+        statusBarView.updateEOL("Macintosh (CR)")
+        documentState.isDirty = true
+        updateWindowTitle()
+    }
+    
+    @objc private func selectUTF8() {
+        documentState.encoding = .utf8
+        statusBarView.updateEncoding("UTF-8")
+        documentState.isDirty = true
+        updateWindowTitle()
+    }
+    
+    @objc private func selectUTF8WithBOM() {
+        documentState.encoding = .utf8WithBOM
+        statusBarView.updateEncoding("UTF-8 with BOM")
+        documentState.isDirty = true
+        updateWindowTitle()
+    }
+    
+    @objc private func selectUTF16LE() {
+        documentState.encoding = .utf16LE
+        statusBarView.updateEncoding("UTF-16 LE")
+        documentState.isDirty = true
+        updateWindowTitle()
+    }
+    
+    @objc private func selectUTF16BE() {
+        documentState.encoding = .utf16BE
+        statusBarView.updateEncoding("UTF-16 BE")
+        documentState.isDirty = true
+        updateWindowTitle()
     }
 }

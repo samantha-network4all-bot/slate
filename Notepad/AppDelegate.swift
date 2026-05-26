@@ -17,6 +17,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Install global keyboard shortcuts that accept both ⌘ and Ctrl
         KeyboardShortcuts.install()
         
+        // Start Alt key monitoring for menu accelerators
+        AltKeyMonitor.start()
+        
         // Setup keyboard shortcut notifications
         setupKeyboardShortcuts()
     }

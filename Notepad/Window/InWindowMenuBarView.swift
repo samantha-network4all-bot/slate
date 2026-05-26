@@ -1,26 +1,8 @@
 import AppKit
 
 class InWindowMenuBarView: NSView {
-    private let menuItems: [InWindowMenuItemView]
+    let menuItems: [InWindowMenuItemView]
     private let menuBuilders: [String: () -> NSMenu]
-
-    override init(frame frameRect: NSRect) {
-        let menus: [(String, String)] = [
-            ("File", "F"), ("Edit", "E"), ("Format", "o"), ("View", "V"), ("Help", "H")
-        ]
-
-        self.menuBuilders = [:]
-        self.menuItems = menus.map { InWindowMenuItemView(frame: .zero, title: $0.0, accelerator: $0.1) }
-
-        super.init(frame: frameRect)
-        wantsLayer = true
-        layer?.backgroundColor = Colors.chromeBackground.cgColor
-
-        for item in menuItems {
-            addSubview(item)
-        }
-        layoutItems()
-    }
 
     init(frame frameRect: NSRect, menuBuilders: [String: () -> NSMenu]) {
         let menus: [(String, String)] = [
@@ -38,6 +20,16 @@ class InWindowMenuBarView: NSView {
             addSubview(item)
         }
         layoutItems()
+    }
+    
+    override convenience init(frame frameRect: NSRect) {
+        self.init(frame: frameRect, menuBuilders: [
+            "File": { MenuBuilder.buildFileMenu() },
+            "Edit": { MenuBuilder.buildEditMenu() },
+            "Format": { MenuBuilder.buildFormatMenu() },
+            "View": { MenuBuilder.buildViewMenu() },
+            "Help": { MenuBuilder.buildHelpMenu() }
+        ])
     }
 
     required init?(coder: NSCoder) {
@@ -67,6 +59,14 @@ class InWindowMenuBarView: NSView {
         if let builder = menuBuilders[menuItem.title] {
             let menu = builder()
             menu.popUp(positioning: nil, at: point, in: menuItem)
+            
+            // Track that a menu is open
+            MenuStateManager.menuOpened()
+            
+            // Set up a notification to track when menu closes
+            NotificationCenter.default.addObserver(forName: NSApplication.didHideNotification, object: menu, queue: .main) { _ in
+                MenuStateManager.menuClosed()
+            }
         }
     }
 

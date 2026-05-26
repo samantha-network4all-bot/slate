@@ -5,6 +5,11 @@ class InWindowMenuItemView: NSView {
     let title: String
     let accelerator: String
     private var isHovered: Bool = false
+    private var showsAccelerator: Bool = false {
+        didSet {
+            needsDisplay = true
+        }
+    }
 
     init(frame: NSRect, title: String, accelerator: String) {
         self.title = title
@@ -19,6 +24,11 @@ class InWindowMenuItemView: NSView {
         wantsLayer = true
         addSubview(titleLabel)
         addTrackingRect(bounds, owner: self, userData: nil, assumeInside: false)
+        
+        // Listen for Alt key changes
+        AltKeyMonitor.onAltChange = { [weak self] isAltDown in
+            self?.showsAccelerator = isAltDown
+        }
     }
 
     required init?(coder: NSCoder) {
@@ -66,10 +76,21 @@ class InWindowMenuItemView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
+        
         // Hover background
         if isHovered {
             Colors.menuHoverBg.setFill()
             dirtyRect.fill()
         }
+        
+        // Draw title with optional underline
+        titleLabel.attributedStringValue = NSAttributedString(
+            string: title,
+            attributes: [
+                .font: Fonts.chrome,
+                .foregroundColor: Colors.chromeText,
+                .underlineStyle: showsAccelerator ? NSUnderlineStyle.single.rawValue : 0
+            ]
+        )
     }
 }

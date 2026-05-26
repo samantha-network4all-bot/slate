@@ -3,6 +3,8 @@ import AppKit
 class StatusBarSegment: NSView {
     private let label: NSTextField
     private var textValue: String
+    private var onClick: (() -> Void)?
+    private var isHovering = false
 
     init(frame: NSRect, text: String) {
         self.textValue = text
@@ -14,7 +16,12 @@ class StatusBarSegment: NSView {
         label.focusRingType = .none
         super.init(frame: frame)
         wantsLayer = true
+        layer?.backgroundColor = Colors.chromeBackground.cgColor
         addSubview(label)
+        
+        // Add tracking area for hover and click
+        let trackingArea = NSTrackingArea(rect: bounds, options: [.activeAlways, .mouseEnteredAndExited], owner: self, userInfo: nil)
+        addTrackingArea(trackingArea)
     }
 
     required init?(coder: NSCoder) {
@@ -40,5 +47,34 @@ class StatusBarSegment: NSView {
     func setText(_ text: String) {
         textValue = text
         label.stringValue = text
+    }
+    
+    func setOnClick(_ handler: @escaping () -> Void) {
+        onClick = handler
+    }
+    
+    override func mouseEntered(with event: NSEvent) {
+        isHovering = true
+        needsDisplay = true
+    }
+    
+    override func mouseExited(with event: NSEvent) {
+        isHovering = false
+        needsDisplay = true
+    }
+    
+    override func mouseDown(with event: NSEvent) {
+        onClick?()
+    }
+    
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        
+        // Draw hover background
+        if isHovering {
+            let path = NSBezierPath(rect: dirtyRect)
+            Colors.menuHoverBg.setFill()
+            path.fill()
+        }
     }
 }

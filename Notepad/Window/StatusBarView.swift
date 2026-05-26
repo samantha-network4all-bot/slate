@@ -9,6 +9,15 @@ class StatusBarView: NSView {
     // Separators between right segments
     private let separator1: NSView
     private let separator2: NSView
+    
+    // Closure for zoom segment clicks
+    var onZoomClick: (() -> Void)?
+    
+    // Closure for EOL segment clicks
+    var onEOLClick: (() -> Void)?
+    
+    // Closure for encoding segment clicks
+    var onEncodingClick: (() -> Void)?
 
     override init(frame: NSRect) {
         lnColLabel = NSTextField(labelWithString: "Ln 1, Col 1")
@@ -40,6 +49,19 @@ class StatusBarView: NSView {
         addSubview(separator2)
         addSubview(eolSegment)
         addSubview(encodingSegment)
+        
+        // Set up click handlers
+        zoomSegment.setOnClick { [weak self] in
+            self?.onZoomClick?()
+        }
+        
+        eolSegment.setOnClick { [weak self] in
+            self?.onEOLClick?()
+        }
+        
+        encodingSegment.setOnClick { [weak self] in
+            self?.onEncodingClick?()
+        }
     }
 
     required init?(coder: NSCoder) {
@@ -113,5 +135,20 @@ class StatusBarView: NSView {
 
     func updateEncoding(_ label: String) {
         encodingSegment.setText(label)
+    }
+    
+    // Get frame of zoom segment for popup positioning
+    func getZoomSegmentFrame() -> NSRect {
+        return zoomSegment.frame
+    }
+    
+    // Get frame of EOL segment for popup positioning
+    func getEOLEgmentFrame() -> NSRect {
+        return eolSegment.frame
+    }
+    
+    // Get frame of encoding segment for popup positioning
+    func getEncodingSegmentFrame() -> NSRect {
+        return encodingSegment.frame
     }
 }

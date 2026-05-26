@@ -332,15 +332,60 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc func showFind() {
-        // Placeholder for Find dialog (future issue)
+        let dialog = FindDialog(editor: editorScrollView.editor)
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.runModal(for: dialog.window!)
+        dialog.close()
     }
 
     @objc func findNext() {
-        // Placeholder (future issue)
+        guard let editor = editorScrollView.editor else { return }
+        
+        let state = InlineFindStateManager.shared
+        let options = InlineFindEngine.Options(
+            matchCase: state.matchCase,
+            wrapAround: state.wrapAround,
+            direction: .forward
+        )
+        
+        let cursorPosition = editor.selectedRange().location
+        
+        if let foundRange = InlineFindEngine.find(
+            text: editor.string,
+            needle: state.searchTerm,
+            options: options,
+            cursorPosition: cursorPosition
+        ) {
+            editor.setSelectedRange(foundRange)
+            editor.scrollRangeToVisible(foundRange)
+        } else {
+            NSSound.beep()
+        }
     }
 
     @objc func findPrevious() {
-        // Placeholder (future issue)
+        guard let editor = editorScrollView.editor else { return }
+        
+        let state = InlineFindStateManager.shared
+        let options = InlineFindEngine.Options(
+            matchCase: state.matchCase,
+            wrapAround: state.wrapAround,
+            direction: .backward
+        )
+        
+        let cursorPosition = editor.selectedRange().location
+        
+        if let foundRange = InlineFindEngine.find(
+            text: editor.string,
+            needle: state.searchTerm,
+            options: options,
+            cursorPosition: cursorPosition
+        ) {
+            editor.setSelectedRange(foundRange)
+            editor.scrollRangeToVisible(foundRange)
+        } else {
+            NSSound.beep()
+        }
     }
 
     @objc func showReplace() {
@@ -422,7 +467,11 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
             let cmdOnly = event.modifierFlags.contains(.command) &&
                           !event.modifierFlags.contains(.shift) &&
                           !event.modifierFlags.contains(.control)
+            let shiftOnly = event.modifierFlags.contains(.shift) &&
+                           !event.modifierFlags.contains(.command) &&
+                           !event.modifierFlags.contains(.control)
             let char = event.characters?.lowercased()
+            
             if cmdOnly && char == "n" {
                 self.fileNew()
                 return nil // consume event
@@ -435,6 +484,17 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
                 self.fileOpen()
                 return nil // consume event
             }
+            
+            // F3 and Shift+F3 for find operations
+            if event.keyCode == 0x4F { // F3 key
+                if shiftOnly {
+                    self.findPrevious()
+                } else {
+                    self.findNext()
+                }
+                return nil // consume event
+            }
+            
             return event
         }
     }

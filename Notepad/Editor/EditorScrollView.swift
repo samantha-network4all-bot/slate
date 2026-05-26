@@ -24,4 +24,48 @@ class EditorScrollView: NSScrollView {
     required init?(coder: NSCoder) {
         super.init(coder: coder)
     }
+    
+    // MARK: - Drag and Drop
+    
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        let pasteboard = sender.draggingPasteboard
+        if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL] {
+            for url in urls {
+                if isAcceptableFile(url: url) {
+                    return .copy
+                }
+            }
+        }
+        return []
+    }
+    
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        return draggingEntered(sender)
+    }
+    
+    override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        return true
+    }
+    
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        let pasteboard = sender.draggingPasteboard
+        if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL] {
+            // Handle multiple files
+            if let windowController = window?.windowController as? NotepadWindowController {
+                windowController.openDraggedFiles(urls)
+            }
+            return true
+        }
+        return false
+    }
+    
+    override func concludeDragOperation(_ sender: NSDraggingInfo?) {
+        // Clean up after drag operation
+    }
+    
+    private func isAcceptableFile(url: URL) -> Bool {
+        let pathExtension = url.pathExtension.lowercased()
+        let acceptableExtensions = ["txt", "log", "md", "csv", ""] // "" for no extension
+        return acceptableExtensions.contains(pathExtension)
+    }
 }

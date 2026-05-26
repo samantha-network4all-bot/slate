@@ -39,7 +39,12 @@ final class LineColumnTrackerTests: XCTestCase {
         let text = "Hello\r\nWorld"
         let result = LineColumnTracker.position(text: text, caretOffset: 6) // Position at \r
         XCTAssertEqual(result.line, 1)
-        XCTAssertEqual(result.column, 7) // Position at \r (before \n)
+        XCTAssertEqual(result.column, 6) // Position at \r (still on line 1)
+        
+        // Test position after CRLF (start of line 2)
+        let resultAfterCRLF = LineColumnTracker.position(text: text, caretOffset: 7) // Position at \n
+        XCTAssertEqual(resultAfterCRLF.line, 2)
+        XCTAssertEqual(resultAfterCRLF.column, 1) // Start of line 2
     }
     
     func test_caretOnLF() throws {
@@ -66,12 +71,12 @@ final class LineColumnTrackerTests: XCTestCase {
         XCTAssertEqual(result.line, 1)
         XCTAssertEqual(result.column, 1)
         
-        // At start of Line2
+        // At start of Line2 (after CRLF)
         result = LineColumnTracker.position(text: text, caretOffset: 7) // After \r\n
         XCTAssertEqual(result.line, 2)
         XCTAssertEqual(result.column, 1)
         
-        // At start of Line3
+        // At start of Line3 (after second CRLF)
         result = LineColumnTracker.position(text: text, caretOffset: 14) // After second \r\n
         XCTAssertEqual(result.line, 3)
         XCTAssertEqual(result.column, 1)
@@ -105,7 +110,7 @@ final class LineColumnTrackerTests: XCTestCase {
         XCTAssertEqual(result1.column, 1)
         
         // At start of Line3 (after CRLF)
-        let result2 = LineColumnTracker.position(text: text, caretOffset: 14)
+        let result2 = LineColumnTracker.position(text: text, caretOffset: 13) // After \r\n (not 14)
         XCTAssertEqual(result2.line, 3)
         XCTAssertEqual(result2.column, 1)
     }

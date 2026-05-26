@@ -152,6 +152,14 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         let editorSV = EditorScrollView(frame: .zero)
         window.contentView?.addSubview(editorSV)
         editorScrollView = editorSV
+        
+        // Set up drag and drop on the editor scroll view
+        setupDragAndDrop(on: editorSV)
+    }
+    
+    private func setupDragAndDrop(on scrollView: EditorScrollView) {
+        // Register for dragged file types
+        scrollView.registerForDraggedTypes([.fileURL])
     }
 
     private func setupStatusBar() {
@@ -177,6 +185,9 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         
         window.contentView?.addSubview(statusBar)
         statusBarView = statusBar
+        
+        // Set initial line/column display
+        updateLineColumnDisplay()
     }
 
     private func setupDirtyTracking() {
@@ -186,6 +197,14 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
             selector: #selector(textDidChange(_:)),
             name: NSText.didChangeNotification,
             object: editorScrollView.editor?.textStorage
+        )
+        
+        // Also observe selection changes for line/column updates
+        center.addObserver(
+            self,
+            selector: #selector(selectionDidChange(_:)),
+            name: NSTextView.didChangeSelectionNotification,
+            object: editorScrollView.editor
         )
     }
 
@@ -219,6 +238,23 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         documentState.text = editorScrollView.editor?.string ?? ""
         documentState.isDirty = true
         updateWindowTitle()
+        
+        // Update line/column display when text changes
+        updateLineColumnDisplay()
+    }
+    
+    @objc private func selectionDidChange(_ notification: Notification) {
+        updateLineColumnDisplay()
+    }
+    
+    private func updateLineColumnDisplay() {
+        guard let editor = editorScrollView.editor else { return }
+        
+        let text = editor.string
+        let caretOffset = editor.selectedRange().location
+        let (line, column) = LineColumnTracker.position(text: text, caretOffset: caretOffset)
+        
+        statusBarView.updateLnCol(line: line, col: column)
     }
 
     private func updateWindowTitle() {
@@ -795,5 +831,59 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         statusBarView.updateEncoding("UTF-16 BE")
         documentState.isDirty = true
         updateWindowTitle()
+    }
+    
+    // MARK: - Drag and Drop
+    
+    func openDraggedFile(_ url: URL) {
+        // Check if current window is empty and untitled
+        if isCurrentWindowEmptyAndUntitled() {
+            // Open the file in the current window
+            openFile(at: url)
+        } else {
+            // Open the file in a new window
+            let newController = DocumentController.shared.newWindow(sourceController: self)
+            newController.openDraggedFile(url)
+        }
+    }
+    
+    private func isCurrentWindowEmptyAndUntitled() -> Bool {
+        guard let editor = editorScrollView.editor else { return false }
+        let isEmpty = editor.string.isEmpty
+        let isUntitled = documentState.url == nil
+        return isEmpty && isUntitled
+    }
+    
+    // Handle multiple dragged files
+    func openDraggedFiles(_ urls: [URL]) {
+        for url in urls {
+            if isAcceptableFile(url: url) {
+                if isCurrentWindowEmptyAndUntitled() {
+                    // Only use the first file in the current window if it's empty and untitled
+                    openFile(at: url)
+                    // For remaining files, create new windows
+                    for remainingUrl in urls.dropFirst() {
+                        if isAcceptableFile(url: remainingUrl) {
+                            let newController = DocumentController.shared.newWindow(sourceController: self)
+                            newController.openDraggedFile(remainingUrl)
+                        }
+                    }
+                    break
+                } else {
+                    // Each file gets its own window
+                    let newController = DocumentController.shared.newWindow(sourceController: self)
+                    newController.openDraggedFile(url)
+                }
+            } else {
+                // Non-text files: beep and reject
+                NSSound.beep()
+            }
+        }
+    }
+    
+    private func isAcceptableFile(url: URL) -> Bool {
+        let pathExtension = url.pathExtension.lowercased()
+        let acceptableExtensions = ["txt", "log", "md", "csv", ""] // "" for no extension
+        return acceptableExtensions.contains(pathExtension)
     }
 }

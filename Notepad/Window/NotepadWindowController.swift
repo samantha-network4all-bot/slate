@@ -328,7 +328,20 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     // MARK: - Edit Menu
 
     @objc func insertTimeDate() {
-        // Placeholder for time/date insertion (future issue)
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "HH:mm M/d/yyyy"
+        
+        let timestamp = formatter.string(from: Date())
+        
+        // Begin undo group for atomic insertion
+        editorScrollView.editor?.undoManager?.beginUndoGrouping()
+        
+        // Insert the timestamp at the current cursor position
+        editorScrollView.editor?.insertText(timestamp)
+        
+        // End undo group
+        editorScrollView.editor?.undoManager?.endUndoGrouping()
     }
 
     @objc func showFind() {
@@ -486,13 +499,19 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
                 return nil // consume event
             }
             
-            // F3 and Shift+F3 for find operations
+                    // F3 and Shift+F3 for find operations
             if event.keyCode == 0x4F { // F3 key
                 if shiftOnly {
                     self.findPrevious()
                 } else {
                     self.findNext()
                 }
+                return nil // consume event
+            }
+            
+            // F5 for Time/Date insertion
+            if event.keyCode == 0x3E { // F5 key
+                self.insertTimeDate()
                 return nil // consume event
             }
             

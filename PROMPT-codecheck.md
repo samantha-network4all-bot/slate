@@ -24,9 +24,16 @@ order in which to triage them.
 - **PRD**: `PRD.md` — authoritative spec for behavior.
 - **Reference image**: `notepad.png` — the visual target.
 - **Build command**: `./build-project.sh` (wraps `xcodegen` + `xcodebuild`).
-- **Smoke test**: `./quality-check.sh -b` — builds, launches, asks
-  WindowServer how many windows the app has, scans stderr for crashes,
-  exits 0 on full pass. **Treat exit 0 as the only proof the app works.**
+- **Smoke test**: `./quality-check.sh -b -i` — builds, launches, asks
+  WindowServer how many windows the app has, posts a synthetic
+  keystroke and reads the focused element back via the Accessibility
+  API, posts `⌘O` and watches for a crash, scans stderr for crashes,
+  exits 0 on full pass. Exit codes: 0=ok, 2=no window, 3=stderr crash,
+  5=typing doesn't work, 6=File→Open crashes. **Treat exit 0 as the
+  only proof the app works.** If the typing rung reports
+  `skipped-no-ax` in `.quality-check/report.md`, that means macOS
+  Accessibility permission is not granted to the terminal — that is
+  an infrastructure issue, **not** a defect; do not "fix" it in code.
 - **Defect skill**: `.claude/skills/codecheck/SKILL.md`.
 
 ---
@@ -36,7 +43,7 @@ order in which to triage them.
 Run:
 
 ```
-./quality-check.sh -b
+./quality-check.sh -b -i
 ```
 
 Capture the exit code as `QC_RC`. Read `.quality-check/report.md` and
@@ -111,7 +118,7 @@ Let `DEFECT` be a kebab-case slug describing the fix
 4. Run `./build-project.sh`. If it fails, your fix is wrong — **revert
    your changes** (`git checkout -- .`), write
    `failed:build:<DEFECT>` to `.ralph-status`, and stop.
-5. Run `./quality-check.sh`. If it fails (exit ≠ 0), your fix made the
+5. Run `./quality-check.sh -i`. If it fails (exit ≠ 0), your fix made the
    runtime worse — **revert your changes** (`git checkout -- .`),
    write `failed:qa:<DEFECT>` to `.ralph-status`, and stop.
 
@@ -132,7 +139,7 @@ Let `DEFECT` be a kebab-case slug describing the fix
    git commit -m "codecheck: <DEFECT> — <one-line summary>
 
    <2–3 line WHY: what was broken, what symptom this fixes (cross-reference
-   ./quality-check.sh exit code or stderr if it caught it).>
+   ./quality-check.sh -i exit code or stderr if it caught it).>
    "
    ```
 4. Push to main:
@@ -151,7 +158,7 @@ Let `DEFECT` be a kebab-case slug describing the fix
 
 - **One iteration = one defect.** Never chain fixes.
 - **Build green before commit, every time.** No exceptions.
-- **`./quality-check.sh` exit 0 before commit, every time.** No
+- **`./quality-check.sh -i` exit 0 before commit, every time.** No
   exceptions.
 - **Never** push to a branch other than `main` from this loop.
 - **Never** modify the loop infrastructure files (see Step 3 list).

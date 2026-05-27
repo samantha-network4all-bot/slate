@@ -8,7 +8,7 @@ description: Triage and fix one runtime-stability defect in the Notepad codebase
 This skill is the playbook for one iteration of `ralph-codecheck.sh`. The
 goal is **not** to add features, polish UI, or refactor. The goal is to
 find ONE runtime defect that makes the app unusable, fix it minimally,
-and prove the fix works via `./quality-check.sh`.
+and prove the fix works via `./quality-check.sh -i`.
 
 ## Triage ladder (work top-down, stop at the first real hit)
 
@@ -112,7 +112,7 @@ Defer all of the above. They are not stability issues.
 - One defect per iteration. Resist the urge to fix two while you're
   in the file.
 - Minimum diff. Add or rewire the missing piece; do not refactor.
-- The fix must pass `./build-project.sh` AND `./quality-check.sh` (exit
+- The fix must pass `./build-project.sh` AND `./quality-check.sh -i` (exit
   0). If it doesn't, revert and write `failed:` — do not commit a
   half-fix.
 - Commit message format: `codecheck: <slug> — <summary>` with 2–3 lines
@@ -122,8 +122,21 @@ Defer all of the above. They are not stability issues.
 
 Only after walking the full ladder and finding nothing real. "I checked
 the file names and they look fine" is not walking the ladder — read the
-code of each candidate before declaring no defects. If `./quality-check.sh`
-exits 0, the editor accepts input (open the app, type via the
-keystroke-simulation hook in the script if present), and every menu
-command listed in `MenuBuilder.swift` reaches a real responder, **then**
-write `empty`.
+code of each candidate before declaring no defects.
+
+The bar is now harder:
+
+1. `./quality-check.sh -i` exits **0** (not just window-exists; the
+   interactive rungs must pass).
+2. `.quality-check/report.md` shows **`Typing rung: pass`** (not
+   `skipped` — the LLM must verify it ran, not just trust silence).
+3. `.quality-check/report.md` shows **`File→Open (⌘O) rung: pass`**.
+4. Every menu command listed in `MenuBuilder.swift` reaches a real
+   responder (verify by `grep` — for each `action:` selector, confirm
+   the method exists on either the app delegate, a window controller,
+   or a first-responder type).
+
+If any of (1)–(4) fails, the loop has work to do. Only when all four
+hold should you write `empty`. If (2) reports `skipped-no-ax`, do
+**not** treat that as a pass — surface it as `failed:ax-not-granted`
+so the human can grant accessibility and re-run the loop.

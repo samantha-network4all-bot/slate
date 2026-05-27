@@ -8,10 +8,11 @@
 # quickly tell whether a freshly built app is actually usable.
 #
 # Usage:
-#   ./quality-check.sh             # use existing build
+#   ./quality-check.sh             # basic smoke (window + crash scan)
 #   ./quality-check.sh -b          # build first via ./build-project.sh
 #   ./quality-check.sh -c Release  # check Release config (default Debug)
 #   ./quality-check.sh -w 5        # wait N seconds after launch (default 3)
+#   ./quality-check.sh -i          # also run interactive rungs (typing + ⌘O)
 #   ./quality-check.sh -k          # keep the app running after the check
 #
 # Exit codes:
@@ -20,6 +21,13 @@
 #   2  app launched but no window appeared
 #   3  app crashed or stderr contained errors
 #   4  app failed to launch at all
+#   5  -i: typing produced no characters in the focused text view
+#   6  -i: app crashed during File→Open (⌘O) probe
+#
+# Interactive mode (-i) requires Terminal (or whatever runs this script)
+# to have macOS Accessibility permission:
+#   System Settings → Privacy & Security → Accessibility → enable Terminal
+# Without it, the rungs are skipped with a warning rather than failing.
 
 set -euo pipefail
 
@@ -27,16 +35,18 @@ CONFIG="Debug"
 DO_BUILD=0
 WAIT_SECS=3
 KEEP_RUNNING=0
+INTERACTIVE=0
 APP_NAME="Notepad"
 BUNDLE_ID="com.bimboware.notepad"
 PROCESS_NAME="Notepad"
 
-while getopts ":bc:w:kh" opt; do
+while getopts ":bc:w:kih" opt; do
   case "$opt" in
     b) DO_BUILD=1 ;;
     c) CONFIG="$OPTARG" ;;
     w) WAIT_SECS="$OPTARG" ;;
     k) KEEP_RUNNING=1 ;;
+    i) INTERACTIVE=1 ;;
     h)
       grep '^#' "$0" | sed 's/^# \{0,1\}//'
       exit 0
@@ -178,6 +188,113 @@ if command -v log >/dev/null; then
   fi
 fi
 
+# ---------- interactive rungs (-i) ----------
+
+TYPING_RESULT="skipped"
+OPEN_RESULT="skipped"
+
+if (( INTERACTIVE == 1 )); then
+  info "interactive mode — bringing $APP_NAME to front"
+
+  # Bring the app to front so synthetic input reaches it (not some other app).
+  osascript -e "tell application id \"$BUNDLE_ID\" to activate" 2>>"$STDERR_LOG" || true
+  sleep 1
+
+  # --- rung: typing ---
+  # Strategy: post a known string via CGEvent, then read the AXValue of the
+  # process's AXFocusedUIElement back. If accessibility isn't granted to the
+  # terminal, the readback returns "" and we report "skipped" instead of failing.
+
+  TEST_STRING="qcheck-$(date +%s)"
+  info "typing test: posting '$TEST_STRING' as keystrokes"
+
+  /usr/bin/swift - "$TEST_STRING" "$APP_PID" >>"$STDOUT_LOG" 2>>"$STDERR_LOG" <<'SWIFT'
+import ApplicationServices
+import AppKit
+
+let text = CommandLine.arguments[1]
+let pid = pid_t(CommandLine.arguments[2]) ?? 0
+
+// Post each character via CGEvent keyboard down/up using unicode strings —
+// avoids having to map to virtual keycodes.
+for scalar in text.unicodeScalars {
+    var unichar = UInt16(scalar.value)
+    if let down = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true) {
+        down.keyboardSetUnicodeString(stringLength: 1, unicodeString: &unichar)
+        down.postToPid(pid)
+    }
+    if let up = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false) {
+        up.keyboardSetUnicodeString(stringLength: 1, unicodeString: &unichar)
+        up.postToPid(pid)
+    }
+    usleep(20_000) // 20ms between events
+}
+SWIFT
+
+  sleep 1
+
+  # Read back the focused element's AXValue via AX API.
+  READ_BACK=$(/usr/bin/swift - "$APP_PID" 2>>"$STDERR_LOG" <<'SWIFT' || true
+import ApplicationServices
+let pid = pid_t(CommandLine.arguments[1]) ?? 0
+guard pid > 0 else { print(""); exit(0) }
+
+let app = AXUIElementCreateApplication(pid)
+var focused: AnyObject?
+let err = AXUIElementCopyAttributeValue(app, kAXFocusedUIElementAttribute as CFString, &focused)
+guard err == .success, let element = focused else {
+    // .apiDisabled (-25211) = accessibility not granted; surface a token so caller can skip
+    if err.rawValue == -25211 { print("__AX_DISABLED__") }
+    exit(0)
+}
+var value: AnyObject?
+let vErr = AXUIElementCopyAttributeValue(element as! AXUIElement, kAXValueAttribute as CFString, &value)
+if vErr == .success, let s = value as? String {
+    print(s)
+}
+SWIFT
+)
+
+  if [[ "$READ_BACK" == "__AX_DISABLED__" ]]; then
+    warn "typing rung skipped — grant Accessibility to Terminal in System Settings"
+    TYPING_RESULT="skipped-no-ax"
+  elif [[ -z "$READ_BACK" ]]; then
+    warn "typing rung: could not read focused element value (no focus? not a text field?)"
+    TYPING_RESULT="skipped-no-readback"
+  elif [[ "$READ_BACK" == *"$TEST_STRING"* ]]; then
+    pass "typing works — focused element contains '$TEST_STRING'"
+    TYPING_RESULT="pass"
+  else
+    fail "typing FAILED — focused element value: $(echo "$READ_BACK" | head -c 200)"
+    TYPING_RESULT="fail"
+  fi
+
+  # --- rung: File→Open via ⌘O ---
+  if kill -0 "$APP_PID" 2>/dev/null; then
+    info "menu probe: posting ⌘O to $APP_NAME"
+    osascript -e "tell application \"System Events\" to keystroke \"o\" using {command down}" 2>>"$STDERR_LOG" || true
+    sleep 2
+    if kill -0 "$APP_PID" 2>/dev/null; then
+      pass "process alive after ⌘O (no crash)"
+      OPEN_RESULT="pass"
+      # Best effort: dismiss any sheet/dialog that opened so we don't wedge the app.
+      osascript -e 'tell application "System Events" to key code 53' 2>/dev/null || true # ESC
+      sleep 1
+    else
+      fail "process CRASHED after ⌘O (File→Open is broken)"
+      OPEN_RESULT="fail"
+    fi
+  else
+    fail "process died before File→Open probe"
+    OPEN_RESULT="fail"
+  fi
+
+  # Re-capture screenshot after interactive rungs
+  if command -v screencapture >/dev/null; then
+    screencapture -x "$ARTIFACTS_DIR/screenshot-after.png" 2>>"$STDERR_LOG" || true
+  fi
+fi
+
 # ---------- write report ----------
 
 ELAPSED=$(( $(date +%s) - START_TS ))
@@ -190,6 +307,8 @@ ELAPSED=$(( $(date +%s) - START_TS ))
   echo "- Window count: **$WINDOW_COUNT**"
   echo "- Stderr crash lines: $ERR_HITS"
   echo "- Unified log fault/error lines: $LOG_HITS"
+  echo "- Typing rung: **$TYPING_RESULT**"
+  echo "- File→Open (⌘O) rung: **$OPEN_RESULT**"
   echo "- Wall time:   ${ELAPSED}s"
   echo "- Screenshot:  \`$SCREENSHOT\`"
   echo "- Stderr:      \`$STDERR_LOG\`"
@@ -226,5 +345,11 @@ if [[ "$WINDOW_COUNT" -lt 1 ]]; then
 fi
 if [[ "$ERR_HITS" -gt 0 ]]; then
   exit 3
+fi
+if [[ "$OPEN_RESULT" == "fail" ]]; then
+  exit 6
+fi
+if [[ "$TYPING_RESULT" == "fail" ]]; then
+  exit 5
 fi
 exit 0

@@ -6,13 +6,25 @@ class EditorScrollView: NSScrollView {
     override init(frame: NSRect) {
         super.init(frame: frame)
 
-        // Create a text container for the editor view
-        let textContainer = NSTextContainer()
-        textContainer.containerSize = NSSize(width: frame.width, height: frame.height)
+        // Build a proper text storage → layout manager → container stack.
+        // NSTextView with an orphan container has no backing store, so typing
+        // produces no output.
+        let textStorage = NSTextStorage()
+        let layoutManager = NSLayoutManager()
+        textStorage.addLayoutManager(layoutManager)
+
+        let containerSize = NSSize(width: max(frame.width, 1), height: CGFloat.greatestFiniteMagnitude)
+        let textContainer = NSTextContainer(containerSize: containerSize)
         textContainer.widthTracksTextView = false
-        textContainer.heightTracksTextView = true
-        
+        textContainer.heightTracksTextView = false
+        layoutManager.addTextContainer(textContainer)
+
         let editorView = EditorView(frame: frame, textContainer: textContainer)
+        editorView.minSize = NSSize(width: 0, height: 0)
+        editorView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        editorView.isVerticallyResizable = true
+        editorView.isHorizontallyResizable = true
+        editorView.autoresizingMask = [.width]
         self.editor = editorView
         documentView = editorView
 
@@ -29,10 +41,14 @@ class EditorScrollView: NSScrollView {
         borderType = .noBorder
         backgroundColor = Colors.editorBg
     }
+    
+
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
     }
+    
+
     
     // MARK: - Drag and Drop
     

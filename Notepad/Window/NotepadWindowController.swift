@@ -53,8 +53,10 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         applyWordWrap()
         updateWordWrapMenuState()
         
-        // Make editor the first responder so typing works immediately
-        window.makeFirstResponder(editorScrollView)
+        // Make the inner text view the first responder so typing works immediately.
+        // Setting the scroll view as first responder routes keystrokes to the
+        // scroller, not the editor.
+        window.makeFirstResponder(editorScrollView.editor)
     }
 
     private static func defaultFrameStatic() -> NSRect {

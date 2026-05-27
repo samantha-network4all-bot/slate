@@ -24,14 +24,26 @@ class FileBrowserSidebar: NSView {
     }
     
     private func createSidebarItems() {
-        // Quick links section
-        items.append(SidebarItem(title: "Desktop", icon: NSImage(imageLiteralResourceName: "NSTouchBarFolderIcon"), path: FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first!))
-        items.append(SidebarItem(title: "Downloads", icon: NSImage(imageLiteralResourceName: "NSTouchBarDownloadIcon"), path: FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!))
-        items.append(SidebarItem(title: "Documents", icon: NSImage(imageLiteralResourceName: "NSTouchBarFolderIcon"), path: FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!))
-        
-        // This Mac section
-        items.append(SidebarItem(title: "This Mac", icon: NSImage(imageLiteralResourceName: "NSTouchBarShareIcon"), path: URL(fileURLWithPath: "/"))) // Root path
-        items.append(SidebarItem(title: "home", icon: NSImage(imageLiteralResourceName: "NSTouchBarUserIcon"), path: URL(fileURLWithPath: NSHomeDirectory())))
+        // imageLiteralResourceName traps on missing assets; use the failable
+        // NSImage(named:) with a folder-icon fallback so absent system images
+        // can't crash the file dialog.
+        let folder = NSImage(named: NSImage.folderName) ?? NSImage(size: NSSize(width: 16, height: 16))
+        func img(_ name: String) -> NSImage { NSImage(named: name) ?? folder }
+        let fm = FileManager.default
+
+        let desktop = fm.urls(for: .desktopDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Desktop")
+        let downloads = fm.urls(for: .downloadsDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Downloads")
+        let documents = fm.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Documents")
+
+        items.append(SidebarItem(title: "Desktop", icon: img("NSTouchBarFolderIcon"), path: desktop))
+        items.append(SidebarItem(title: "Downloads", icon: img("NSTouchBarDownloadIcon"), path: downloads))
+        items.append(SidebarItem(title: "Documents", icon: img("NSTouchBarFolderIcon"), path: documents))
+
+        items.append(SidebarItem(title: "This Mac", icon: img("NSTouchBarShareIcon"), path: URL(fileURLWithPath: "/")))
+        items.append(SidebarItem(title: "home", icon: img("NSTouchBarUserIcon"), path: URL(fileURLWithPath: NSHomeDirectory())))
     }
     
     private func layoutItems() {
@@ -70,8 +82,15 @@ class FileBrowserSidebar: NSView {
     }
     
     func selectDirectory(at url: URL) {
-        if let item = items.first(where: { $0.path == url }) {
-            selectItem(item)
+        // Only update the visual selection; do NOT fire onDirectorySelected,
+        // otherwise FileBrowserDialog.navigate → loadDirectory → selectDirectory
+        // recurses forever.
+        guard let item = items.first(where: { $0.path == url }) else { return }
+        selectedItemView?.isSelected = false
+        selectedItemView = nil
+        if let itemView = subviews.first(where: { ($0 as? SidebarItemView)?.item?.title == item.title }) as? SidebarItemView {
+            itemView.isSelected = true
+            selectedItemView = itemView
         }
     }
 }

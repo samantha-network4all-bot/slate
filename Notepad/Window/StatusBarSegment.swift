@@ -28,6 +28,15 @@ class StatusBarSegment: NSView {
         fatalError("init(coder:) has not been implemented")
     }
 
+    override func updateTrackingAreas() {
+        for area in trackingAreas {
+            removeTrackingArea(area)
+        }
+        let trackingArea = NSTrackingArea(rect: bounds, options: [.activeAlways, .mouseEnteredAndExited], owner: self, userInfo: nil)
+        addTrackingArea(trackingArea)
+        super.updateTrackingAreas()
+    }
+
     override var intrinsicContentSize: NSSize {
         let size = label.cell?.cellSize ?? NSSize(width: 40, height: Metrics.statusBarHeight)
         return NSSize(width: size.width + 2 * Metrics.statusSegmentPaddingH, height: Metrics.statusBarHeight)

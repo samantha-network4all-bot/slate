@@ -844,7 +844,7 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
             self?.documentState.encoding = encoding?.toDocumentEncoding() ?? self?.documentState.encoding ?? .utf8
             self?.documentState.lineEnding = lineEnding?.toLineEnding() ?? self?.documentState.lineEnding ?? .crlf
             self?.save(nil)
-            // Save successful, window will be closed by the save completion
+            window.close()
         }
         
         // Set default filename to Untitled

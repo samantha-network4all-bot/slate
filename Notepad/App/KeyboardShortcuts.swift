@@ -125,44 +125,23 @@ class KeyboardShortcuts {
     // MARK: - Action Handlers
     
     private static func handleNewWindow() {
-        if let appDelegate = NSApplication.shared.delegate as? AppDelegate {
-            appDelegate.newWindowAction?()
-        } else {
-            // Fallback: use notification pattern
-            NotificationCenter.default.post(name: .newWindowShortcut, object: nil)
-        }
+        NotificationCenter.default.post(name: .newWindowShortcut, object: nil)
     }
-    
+
     private static func handleOpen() {
-        if let appDelegate = NSApplication.shared.delegate as? AppDelegate {
-            appDelegate.openAction?()
-        } else {
-            NotificationCenter.default.post(name: .openShortcut, object: nil)
-        }
+        NotificationCenter.default.post(name: .openShortcut, object: nil)
     }
-    
+
     private static func handleSave() {
-        if let appDelegate = NSApplication.shared.delegate as? AppDelegate {
-            appDelegate.saveAction?()
-        } else {
-            NotificationCenter.default.post(name: .saveShortcut, object: nil)
-        }
+        NotificationCenter.default.post(name: .saveShortcut, object: nil)
     }
-    
+
     private static func handleSaveAs() {
-        if let appDelegate = NSApplication.shared.delegate as? AppDelegate {
-            appDelegate.saveAsAction?()
-        } else {
-            NotificationCenter.default.post(name: .saveAsShortcut, object: nil)
-        }
+        NotificationCenter.default.post(name: .saveAsShortcut, object: nil)
     }
-    
+
     private static func handlePrint() {
-        if let appDelegate = NSApplication.shared.delegate as? AppDelegate {
-            appDelegate.printAction?()
-        } else {
-            NotificationCenter.default.post(name: .printShortcut, object: nil)
-        }
+        NotificationCenter.default.post(name: .printShortcut, object: nil)
     }
     
     private static func handleQuit() {

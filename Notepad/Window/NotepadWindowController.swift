@@ -55,11 +55,14 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
     }
 
     private static func defaultFrameStatic() -> NSRect {
-        let screen = NSScreen.main!
+        let screen = NSScreen.main
         let size = Metrics.defaultWindowSize
-        let x = screen.visibleFrame.maxX - size.width
-        let y = screen.visibleFrame.maxY - size.height
-        return NSRect(x: x, y: y, width: size.width, height: size.height)
+        if let screen = screen {
+            let x = screen.visibleFrame.maxX - size.width
+            let y = screen.visibleFrame.maxY - size.height
+            return NSRect(x: x, y: y, width: size.width, height: size.height)
+        }
+        return NSRect(x: 0, y: 0, width: size.width, height: size.height)
     }
 
     /// Restore a previously saved window frame from UserDefaults.
@@ -92,12 +95,13 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
             frame.origin.x += 22
             frame.origin.y -= 22
             // Clamp within the screen.
-            let screen = NSScreen.main!
-            if frame.origin.x + frame.width > screen.visibleFrame.maxX {
-                frame.origin.x = screen.visibleFrame.maxX - frame.width
-            }
-            if frame.origin.y < screen.visibleFrame.minY {
-                frame.origin.y = screen.visibleFrame.minY
+            if let screen = NSScreen.main {
+                if frame.origin.x + frame.width > screen.visibleFrame.maxX {
+                    frame.origin.x = screen.visibleFrame.maxX - frame.width
+                }
+                if frame.origin.y < screen.visibleFrame.minY {
+                    frame.origin.y = screen.visibleFrame.minY
+                }
             }
             return frame
         }

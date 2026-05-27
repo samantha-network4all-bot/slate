@@ -6,7 +6,13 @@ class EditorScrollView: NSScrollView {
     override init(frame: NSRect) {
         super.init(frame: frame)
 
-        let editorView = EditorView(frame: frame, textContainer: nil)
+        // Create a text container for the editor view
+        let textContainer = NSTextContainer()
+        textContainer.containerSize = NSSize(width: frame.width, height: frame.height)
+        textContainer.widthTracksTextView = false
+        textContainer.heightTracksTextView = true
+        
+        let editorView = EditorView(frame: frame, textContainer: textContainer)
         self.editor = editorView
         documentView = editorView
 

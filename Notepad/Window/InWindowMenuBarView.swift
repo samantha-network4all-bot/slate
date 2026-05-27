@@ -3,6 +3,7 @@ import AppKit
 class InWindowMenuBarView: NSView {
     let menuItems: [InWindowMenuItemView]
     private let menuBuilders: [String: () -> NSMenu]
+    private var activeMenuItem: InWindowMenuItemView?
 
     init(frame frameRect: NSRect, menuBuilders: [String: () -> NSMenu]) {
         let menus: [(String, String)] = [
@@ -20,6 +21,7 @@ class InWindowMenuBarView: NSView {
             addSubview(item)
         }
         layoutItems()
+        setupTrackingAreas()
     }
     
     override convenience init(frame frameRect: NSRect) {
@@ -34,6 +36,13 @@ class InWindowMenuBarView: NSView {
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    private func setupTrackingAreas() {
+        for item in menuItems {
+            let trackingArea = NSTrackingArea(rect: item.frame, options: [.activeAlways, .mouseEnteredAndExited, .inVisibleRect], owner: self, userInfo: ["menuItem": item])
+            addTrackingArea(trackingArea)
+        }
     }
 
     private func layoutItems() {
@@ -53,9 +62,28 @@ class InWindowMenuBarView: NSView {
     override func viewDidMoveToSuperview() {
         super.viewDidMoveToSuperview()
         layoutItems()
+        setupTrackingAreas()
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        if let userInfo = event.userData as? [String: Any], 
+           let menuItem = userInfo["menuItem"] as? InWindowMenuItemView {
+            menuItem.setHovered(true)
+        }
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        if let userInfo = event.userData as? [String: Any], 
+           let menuItem = userInfo["menuItem"] as? InWindowMenuItemView {
+            menuItem.setHovered(false)
+        }
     }
 
     func popUpMenu(for menuItem: InWindowMenuItemView, at point: NSPoint) {
+        // Set active item for visual feedback
+        activeMenuItem = menuItem
+        menuItem.setActive(true)
+        
         if let builder = menuBuilders[menuItem.title] {
             let menu = builder()
             
@@ -63,8 +91,10 @@ class InWindowMenuBarView: NSView {
             MenuStateManager.menuOpened()
             
             // Set up a notification to track when menu closes
-            NotificationCenter.default.addObserver(forName: NSApplication.didHideNotification, object: menu, queue: .main) { _ in
+            NotificationCenter.default.addObserver(forName: NSApplication.didHideNotification, object: menu, queue: .main) { [weak self] _ in
                 MenuStateManager.menuClosed()
+                self?.activeMenuItem?.setActive(false)
+                self?.activeMenuItem = nil
             }
             
             menu.popUp(positioning: nil, at: point, in: menuItem)
@@ -73,6 +103,14 @@ class InWindowMenuBarView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
+        
+        // Draw active menu item background if any
+        if let activeItem = activeMenuItem {
+            let activePath = NSBezierPath(rect: activeItem.frame)
+            Colors.menuActiveBg.setFill()
+            activePath.fill()
+        }
+        
         // 1pt bottom border
         let path = NSBezierPath()
         path.move(to: NSPoint(x: 0, y: frame.height - 0.5))

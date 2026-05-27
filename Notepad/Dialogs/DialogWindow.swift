@@ -1,6 +1,7 @@
 import AppKit
 
 class DialogWindow: NSWindow {
+    
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
     
@@ -21,5 +22,9 @@ class DialogWindow: NSWindow {
         collectionBehavior = [.fullScreenAuxiliary]
         isMovableByWindowBackground = true
         titleVisibility = .hidden
+    }
+    
+    func setTitle(_ title: String) {
+        // Title bar functionality will be added via custom title bar view in a future update
     }
 }

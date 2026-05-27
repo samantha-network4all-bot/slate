@@ -77,4 +77,11 @@ class StatusBarSegment: NSView {
             path.fill()
         }
     }
+    
+    func setHovered(_ hovered: Bool) {
+        if isHovering != hovered {
+            isHovering = hovered
+            needsDisplay = true
+        }
+    }
 }

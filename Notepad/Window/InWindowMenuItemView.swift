@@ -73,6 +73,20 @@ class InWindowMenuItemView: NSView {
             parent.popUpMenu(for: self, at: point)
         }
     }
+    
+    func setHovered(_ hovered: Bool) {
+        if isHovered != hovered {
+            isHovered = hovered
+            needsDisplay = true
+        }
+    }
+    
+    func setActive(_ active: Bool) {
+        if isHovered != active {
+            isHovered = active
+            needsDisplay = true
+        }
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)

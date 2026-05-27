@@ -1,15 +1,13 @@
 import AppKit
 
-class TitleBarView: NSView {
+class DialogTitleBarView: NSView {
     private let titleLabel: NSTextField
-    private let minimizeButton: TitleBarButton
-    private let maximizeButton: TitleBarButton
     private let closeButton: TitleBarButton
     var parentWindow: NSWindow?
     private var lastMouseDown: NSEvent?
 
     override init(frame: NSRect) {
-        titleLabel = NSTextField(labelWithString: "Untitled - Notepad")
+        titleLabel = NSTextField(labelWithString: "Dialog")
         titleLabel.font = Fonts.chrome
         titleLabel.textColor = Colors.chromeText
         titleLabel.alignment = .left
@@ -17,18 +15,6 @@ class TitleBarView: NSView {
         titleLabel.isBordered = false
         titleLabel.focusRingType = .none
 
-        minimizeButton = TitleBarButton(buttonType: .minimize, frame: NSRect(
-            x: 0, y: 0,
-            width: Metrics.titleBarButtonWidth,
-            height: Metrics.titleBarButtonHeight
-        ))
-        
-        maximizeButton = TitleBarButton(buttonType: .maximize, frame: NSRect(
-            x: 0, y: 0,
-            width: Metrics.titleBarButtonWidth,
-            height: Metrics.titleBarButtonHeight
-        ))
-        
         closeButton = TitleBarButton(buttonType: .close, frame: NSRect(
             x: 0, y: 0,
             width: Metrics.titleBarButtonWidth,
@@ -38,14 +24,6 @@ class TitleBarView: NSView {
         super.init(frame: frame)
         wantsLayer = true
         layer?.backgroundColor = Colors.chromeBackground.cgColor
-        minimizeButton.onAction = { [weak self] in
-            self?.parentWindow?.miniaturize(nil)
-        }
-        
-        maximizeButton.onAction = { [weak self] in
-            self?.parentWindow?.toggleFullScreen(nil)
-        }
-        
         closeButton.onAction = { [weak self] in
             self?.parentWindow?.performClose(nil)
         }
@@ -58,8 +36,6 @@ class TitleBarView: NSView {
 
     private func setupSubviews() {
         addSubview(titleLabel)
-        addSubview(minimizeButton)
-        addSubview(maximizeButton)
         addSubview(closeButton)
         positionSubviews()
         addTrackingRects()
@@ -77,21 +53,13 @@ class TitleBarView: NSView {
     func positionSubviews() {
         let btnArea = Metrics.titleBarButtonWidth
         let h = Metrics.titleBarHeight
-        
-        // Position buttons from right to left: close, maximize, minimize
         let closeX = frame.width - btnArea
         closeButton.frame = NSRect(x: closeX, y: 0, width: btnArea, height: h)
-        
-        let maxX = closeX - btnArea
-        maximizeButton.frame = NSRect(x: maxX, y: 0, width: btnArea, height: h)
-        
-        let minX = maxX - btnArea
-        minimizeButton.frame = NSRect(x: minX, y: 0, width: btnArea, height: h)
 
         titleLabel.frame = NSRect(
             x: Metrics.titleBarPaddingLeft,
             y: 0,
-            width: minX - Metrics.titleBarPaddingLeft,
+            width: closeX - Metrics.titleBarPaddingLeft,
             height: h
         )
         titleLabel.alignment = .left
@@ -137,7 +105,7 @@ class TitleBarView: NSView {
     }
 }
 
-extension TitleBarView {
+extension DialogTitleBarView {
     func setTitle(_ title: String) {
         titleLabel.stringValue = title
     }

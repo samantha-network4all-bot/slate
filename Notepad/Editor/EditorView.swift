@@ -14,6 +14,7 @@ class EditorView: NSTextView {
     private func configure() {
         isRichText = false
         allowsUndo = true
+        isEditable = true
         font = Fonts.editorDefault
         textColor = Colors.editorText
         backgroundColor = Colors.editorBg

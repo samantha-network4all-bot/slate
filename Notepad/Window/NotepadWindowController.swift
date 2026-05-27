@@ -436,7 +436,8 @@ class NotepadWindowController: NSWindowController, NSWindowDelegate {
         editorScrollView.editor?.undoManager?.beginUndoGrouping()
         
         // Insert the timestamp at the current cursor position
-        editorScrollView.editor?.insertText(timestamp, replacementRange: NSRange(location: 0, length: 0))
+        let insertRange = editorScrollView.editor?.selectedRange() ?? NSRange(location: 0, length: 0)
+        editorScrollView.editor?.insertText(timestamp, replacementRange: insertRange)
         
         // End undo group
         editorScrollView.editor?.undoManager?.endUndoGrouping()

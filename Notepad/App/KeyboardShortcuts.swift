@@ -249,7 +249,7 @@ class KeyboardShortcuts {
         
         if let menuTitle = menuMap[char.lowercased()] {
             // If a menu is currently open, try to trigger the item directly
-            if MenuStateManager.isOpen {
+            if MenuStateManager.isMenuOpen {
                 triggerMenuItemInOpenMenu(char)
             } else {
                 // Otherwise, open the corresponding menu
@@ -315,22 +315,6 @@ class KeyboardShortcuts {
         return nil
     }
 }
-
-// MARK: - Menu State Manager
-
-class MenuStateManager {
-    static var isOpen: Bool = false
-    
-    static func menuOpened() {
-        isOpen = true
-    }
-    
-    static func menuClosed() {
-        isOpen = false
-    }
-}
-
-
 
 // MARK: - Notification Names
 extension Notification.Name {

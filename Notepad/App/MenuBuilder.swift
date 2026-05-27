@@ -8,7 +8,7 @@ class MenuBuilder {
         let aboutItem = NSMenuItem(title: "About Notepad", action: #selector(NotepadWindowController.showAbout), keyEquivalent: "")
         appMenu.addItem(aboutItem)
         appMenu.addItem(NSMenuItem.separator())
-        let quitItem = NSMenuItem(title: "Quit Notepad", action: #selector(AppDelegate.quitApp), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Quit Notepad", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         quitItem.keyEquivalentModifierMask = [.command]
         appMenu.addItem(quitItem)
         let appMenuItem = menu.addItem(withTitle: "Notepad", action: nil, keyEquivalent: "")
@@ -23,7 +23,7 @@ class MenuBuilder {
         fileMenu.addItem(NSMenuItem(title: "Page Setup...", action: #selector(NotepadWindowController.pageSetup), keyEquivalent: ""))
         fileMenu.addItem(NSMenuItem(title: "Print", action: #selector(NotepadWindowController.filePrint), keyEquivalent: "p"))
         fileMenu.addItem(NSMenuItem.separator())
-        let exitItem = NSMenuItem(title: "Exit", action: #selector(AppDelegate.quitApp), keyEquivalent: "")
+        let exitItem = NSMenuItem(title: "Exit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         exitItem.keyEquivalentModifierMask = [.function]
         fileMenu.addItem(exitItem)
         let fileMenuItem = menu.addItem(withTitle: "File", action: nil, keyEquivalent: "")
@@ -92,7 +92,7 @@ class MenuBuilder {
         menu.addItem(NSMenuItem(title: "Page Setup...", action: #selector(NotepadWindowController.pageSetup), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Print", action: #selector(NotepadWindowController.filePrint), keyEquivalent: "p"))
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "&Exit", action: #selector(AppDelegate.quitApp), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "&Exit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: ""))
         return menu
     }
 

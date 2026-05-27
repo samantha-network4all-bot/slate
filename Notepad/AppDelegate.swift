@@ -1,6 +1,5 @@
 import AppKit
 
-@main
 class AppDelegate: NSObject, NSApplicationDelegate {
     // Keyboard shortcut actions
     var newWindowAction: (() -> Void)?
@@ -13,7 +12,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         _ = DocumentController.shared
         let controller = DocumentController.shared.newWindow()
         controller.showWindow(self)
-        
+        NSApp.activate(ignoringOtherApps: true)
+
         // Install global keyboard shortcuts that accept both ⌘ and Ctrl
         KeyboardShortcuts.install()
         

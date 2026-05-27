@@ -43,14 +43,16 @@ gh issue list --repo samantha-network4all-bot/slate \
 Sort the results ascending by `number`. Iterate over them and **skip** any candidate where:
 
 1. `number == 1` (the parent PRD is not an executable slice).
-2. `title` contains `HITL` or `(HITL` (auto-skip — needs human visual review).
+2. Any label is `awaiting-human-review` (already handed off to a human; do not re-pick).
 3. The body's `## Blocked by` section lists any `#N` reference whose state is **not** `closed`. Verify each blocker with:
    ```
    gh issue view <N> --repo samantha-network4all-bot/slate --json state
    ```
    Skip the candidate if any blocker is still `OPEN`.
 
-Pick the **first** candidate that survives all three filters.
+Pick the **first** candidate that survives all filters.
+
+> **HITL issues** (title contains `HITL` or `(HITL`) are **not** auto-skipped. Implement them normally, but follow the **HITL handoff path** in Step 4 instead of pushing to `main`. Set a local flag `IS_HITL=1` so you remember to branch later.
 
 If none survives:
 
@@ -148,7 +150,49 @@ xcodebuild -project Notepad.xcodeproj -scheme Notepad test 2>&1 | tail -200
    "
    ```
    Example tag: `S1` for issue #2, `S2` for issue #3, etc. Extract the `S-slice-tag` from the issue title prefix (titles start with `S<num>:`).
-4. Push to main:
+4. Push:
+
+   **── HITL handoff branch ──**
+
+   If `IS_HITL=1` (the issue title contained `HITL`), **do NOT push to main**. Instead push to a review branch and open a PR for human sign-off:
+
+   a. Move the just-made commit onto a review branch and push it:
+      ```
+      git checkout -b review/<N>
+      git push -u origin review/<N>
+      # restore main so the next iteration starts clean
+      git checkout main
+      git reset --hard origin/main
+      ```
+
+   b. Ensure the label exists, then open a PR:
+      ```
+      gh label create awaiting-human-review --repo samantha-network4all-bot/slate \
+        --color "0e8a16" --description "PR built green; waiting on human visual sign-off" 2>/dev/null || true
+      PR_URL=$(gh pr create --repo samantha-network4all-bot/slate --base main \
+        --head review/<N> --fill)
+      PR_NUM=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+      gh pr edit "$PR_NUM" --repo samantha-network4all-bot/slate --add-label awaiting-human-review
+      ```
+
+   c. Write the close-comment to `/tmp/ralph-review-<N>.md` using the same template as step 6 below, but with this **first** section prepended:
+      ```markdown
+      **HITL handoff** — implementation complete, build green, **PR open for human review**: <PR_URL>
+
+      A human must verify the visual/behavior acceptance criteria and merge the PR. Do not re-open this issue; track follow-up on the PR.
+      ```
+
+   d. Post the comment and close the issue:
+      ```
+      gh issue comment <N> --repo samantha-network4all-bot/slate --body-file /tmp/ralph-review-<N>.md
+      gh issue close   <N> --repo samantha-network4all-bot/slate --reason completed
+      ```
+
+   e. Write `review:<N>` to `.ralph-status`, print `[ralph] iter result: review:<N>`, and stop. **Skip steps 5–8.**
+
+   **── end HITL handoff ──**
+
+   Otherwise (non-HITL), push to main:
    ```
    git push origin main
    ```
@@ -215,6 +259,6 @@ xcodebuild -project Notepad.xcodeproj -scheme Notepad test 2>&1 | tail -200
 - **Never** force-push. **Never** rewrite history. **Never** delete files outside the working directory.
 - **Never** modify `PRD.md`, `PROMPT.md`, `ralph.sh`, `.gitignore`, `notepad.png`.
 - **Never** commit `.env`, `*.key`, `*.pem`, or anything matching `secrets|credentials`.
-- **Never** push to a branch other than `main`.
+- **Never** push to a branch other than `main` — *except* for `review/<N>` branches created by the HITL handoff path in Step 4.
 - **Never** ask the user a question — if you're stuck, write `failed:<N>` with a comment explaining the blocker.
 - The `.ralph-status` file is mandatory. Write it before exiting in **every** code path.

@@ -240,7 +240,7 @@ ralph_worker() {
         echo "worker[$id]: iter $iter -> empty (no eligible issues). stopping."
         return 0
         ;;
-      closed:*|failed:*)
+      closed:*|failed:*|review:*)
         echo "worker[$id]: iter $iter -> $status (pi exit=$pi_rc)"
         unknown_streak=0
         ;;

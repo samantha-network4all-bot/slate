@@ -22,7 +22,7 @@ readonly MAX="${1:-9999}"
 readonly ITER_TIMEOUT="${RALPH_ITER_TIMEOUT:-7200}"
 readonly STATUS_FILE=".ralph-status"
 readonly PROMPT_FILE="PROMPT.md"
-readonly LOG_FILE="buidlog-pi.log"          # aggregated pretty log; `tail -f` me
+readonly LOG_FILE="buildlog-pi.log"          # aggregated pretty log; `tail -f` me
 readonly RAW_LOG_DIR=".ralph-logs"          # per-iteration raw pi json
 readonly FORMATTER="./ralph-format.sh"
 
@@ -142,7 +142,7 @@ for ((i = 1; i <= MAX; i++)); do
       echo "ralph: iter $i -> empty (no eligible issues). exiting."
       exit 0
       ;;
-    closed:*|failed:*)
+    closed:*|failed:*|review:*)
       echo "ralph: iter $i -> $status (pi exit=$pi_rc)"
       unknown_streak=0
       ;;

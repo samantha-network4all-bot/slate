@@ -46,8 +46,8 @@ gh issue list --repo samantha-network4all-bot/slate \
 Sort the results ascending by `number`. Iterate over them and **skip** any candidate where:
 
 1. `number == 1` (the parent PRD is not an executable slice).
-2. `title` contains `HITL` or `(HITL` (auto-skip — needs human visual review).
-3. Any label is `in-progress` (another worker has claimed it).
+2. Any label is `in-progress` (another worker has claimed it).
+3. Any label is `awaiting-human-review` (already handed off to a human; do not re-pick).
 4. The body's `## Blocked by` section lists any `#N` reference whose state is **not** `closed`. Verify each blocker with:
    ```
    gh issue view <N> --repo samantha-network4all-bot/slate --json state
@@ -55,6 +55,8 @@ Sort the results ascending by `number`. Iterate over them and **skip** any candi
    Skip the candidate if any blocker is still `OPEN`.
 
 Pick the **first** candidate that survives all filters.
+
+> **HITL issues** (title contains `HITL` or `(HITL`) are **not** auto-skipped. Implement them normally, but follow the **HITL handoff path** in Step 4 instead of the auto-merge/close flow. Set a local flag `IS_HITL=1` so you remember to branch later.
 
 Once selected, mark it as claimed:
 ```
@@ -173,7 +175,46 @@ Your current branch is the **worker branch** (e.g. `ralph/w0`). Do **NOT** push 
    gh pr create --repo samantha-network4all-bot/slate --base main \
      --head "$(git symbolic-ref --short HEAD)" --fill
    ```
-   Capture the PR URL from the output.
+   Capture the PR URL from the output (call it `PR_URL`, and extract the PR number as `PR_NUM`).
+
+   **── HITL handoff branch ──**
+
+   If `IS_HITL=1` (the issue title contained `HITL`), **do not merge**. Instead:
+
+   a. Label the PR for human review:
+      ```
+      gh pr edit <PR_NUM> --repo samantha-network4all-bot/slate --add-label awaiting-human-review
+      ```
+      (Create the label first if it does not exist:
+      ```
+      gh label create awaiting-human-review --repo samantha-network4all-bot/slate \
+        --color "0e8a16" --description "PR built green; waiting on human visual sign-off" 2>/dev/null || true
+      ```
+      )
+
+   b. Build the close-comment body using the same template as step 7 below, but with an extra **first** section:
+      ```markdown
+      **HITL handoff** — implementation complete, build green, **PR open for human review**: <PR_URL>
+
+      A human must verify the visual/behavior acceptance criteria and merge the PR. Do not re-open this issue; track follow-up on the PR.
+      ```
+      followed by the standard Summary / Acceptance criteria / Build / Tests / Files / Notes sections from step 7.
+
+   c. Post the comment and close the issue:
+      ```
+      gh issue comment <N> --repo samantha-network4all-bot/slate --body-file /tmp/ralph-review-<N>.md
+      gh issue close   <N> --repo samantha-network4all-bot/slate --reason completed
+      ```
+
+   d. Remove the `in-progress` label from the issue:
+      ```
+      gh issue edit <N> --remove-label in-progress --repo samantha-network4all-bot/slate
+      ```
+
+   e. Write `review:<N>` to `.ralph-status`, print `[ralph] iter result: review:<N>`, and stop. **Skip steps 6–10.**
+
+   **── end HITL handoff ──**
+
 6. Squash-merge the PR:
    ```
    gh pr merge --squash --delete-branch
